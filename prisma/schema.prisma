@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Users{
+  id        Int      @id @default(autoincrement())
+  full_name      String
+  email     String   @unique
+  password  String
+  phone     String
+  role      Role      
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Buyers Buyers[]
+
+  Farmers Farmers[]
+}
+
+enum Role {
+  FARMER
+  BUYER
+  BOTH
+}
+
+model Buyers {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  businessName String
+  businessType String
+  address String 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user      Users     @relation(fields: [userId], references: [id])
+} 
+
+model Farmers {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  farmName String
+  address String
+  productsType String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user      Users     @relation(fields: [userId], references: [id])
+
+  Products Products[]
+}
+
+model Products {
+  id        Int      @id @default(autoincrement())
+  farmerId  Int
+  name String
+  price Float
+  stock Int
+  image String?
+  description String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  petani Farmers @relation(fields: [farmerId], references: [id])
+}
+
+

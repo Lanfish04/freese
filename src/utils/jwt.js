@@ -5,13 +5,14 @@ const REFRESH_JWT_SECRET = process.env.REFRESH_JWT_TOKEN;
 
 
 const generateToken = (user) => {
-    return jsonwebtoken.sign(
+    const token = jsonwebtoken.sign(
         { id: user.id, role: user.role }, // payload
         JWT_SECRET,                      // secret key
         { expiresIn: "1d" }              // token expiration
-    );  
+    );
+    return token;
 }
-
+    
 const refreshToken = (user) =>{
     return jsonwebtoken.sign(
         { id: user.id, role: user.role }, // payload

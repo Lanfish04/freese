@@ -1,11 +1,13 @@
 const bcrypt = require("bcrypt");
 const authService = require("../service/authService");
+const tokenUtils = require("../utils/jwt");
 const jwt = require("jsonwebtoken");
 
 async function login(req, res) {
     try {
         const { email, password } = req.body;
         const user = await authService.findUser(email);  
+        const accessToken = tokenUtils.generateToken(user);
         const isPasswordValid = await bcrypt.compare(password, user.password);
          if (!user || !user.password || !isPasswordValid) {
          return res.status(401).json({ message: "Email atau password salah" });
@@ -17,6 +19,7 @@ async function login(req, res) {
         email: user.email,
         role: user.role,
       },
+        token: accessToken,
     });
     }
     catch (error) {

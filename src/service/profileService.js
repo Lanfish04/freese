@@ -1,0 +1,32 @@
+const prisma = require("../config/prisma");
+
+async function getProfileById(id) {
+    return prisma.users.findUnique({
+        where: { id: Number(id) }
+    });
+}
+
+async function updateProfile(id, data) {
+    try {
+        const role = await prisma.users.findUnique({
+            where: { id: Number(id) },
+        });
+        if (!role) {
+            throw new Error("User not found");
+        }
+        else if (role.role === "Farmer") {
+          const updatedProfile = await prisma.users.update({
+            where: { id: Number(id) },
+            data: {
+                full_name: data.full_name,
+                phone: data.phone,
+                email: data.email // Assuming email can be updated
+            }
+        });
+        return updatedProfile; 
+        }
+    } catch (error) {
+        console.error("Error updating profile:", error);
+        throw error;
+    }
+}

@@ -15,8 +15,8 @@ async function getProductById(req, res) {
   
 }
 async function createProduct(req, res) {
-   const { name, price, stock, image, description } = req.body;
     try {
+    const { name, price, stock, image, description, farmerId } = req.body;
     const farmer = await prisma.farmers.findUnique({
         where: { id: farmerId },
     });

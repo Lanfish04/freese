@@ -6,9 +6,9 @@ const accessValidate = (req, res, next) => {
     if (!authorization) {
         return res.status(401).json({ message: "Token tidak ditemukan" });
     }
-    
+   
+
     const token = authorization.split(" ")[1];
-    
     const secret = process.env.JWT_SECRET;
     
     try {

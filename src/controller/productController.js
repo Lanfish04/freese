@@ -15,27 +15,49 @@ async function getProductById(req, res) {
   
 }
 async function createProduct(req, res) {
-    try {
-    const { name, price, stock, image, description, farmerId } = req.body;
-    const farmer = await prisma.farmers.findUnique({
-        where: { id: farmerId },
-    });
-    if (!farmer) {
-        return res.status(404).json({ error: "Farmer not found" });
-    }   
+  try {
+    // Pastikan req.user dan req.user.id tersedia
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
+    }
+
+    if (req.user.role !== 'FARMER') {
+      return res.status(403).json({ error: "Hanya petani yang dapat membuat produk" });
+    }
+
+    const { name, price, stock, image, description, category } = req.body;
 
     if (!name || !price || !stock) {
-        return res.status(400).json({ error: "Nama, Harga dan Stock tidak boleh kosong" });
+      return res.status(400).json({ error: "Nama, Harga dan Stock tidak boleh kosong" });
     }
-        const newProduct = await product.createProduct(name, price, stock, image, description);
 
-        res.status(201).json(newProduct);
-    } catch (error) {
-        console.error("Error creating product:", error);
-        res.status(500).json({ error: "Failed to create product" });
+    // Cari farmer berdasarkan userId
+    const farmer = await prisma.farmers.findFirst({
+      where: { userId: req.user.id },
+    });
+    console.log(farmer);
 
+    if (!farmer) {
+      return res.status(404).json({ error: "Petani tidak ditemukan, pastikan akun anda terdaftar sebagai petani" });
+    }
+
+      const newProduct = await product.createProduct({
+      name: name,
+      price: price,
+      stock: stock,
+      image: image,
+      description: description,
+      category: category,
+      farmerId: farmer.id,
+    });
+
+    res.status(201).json(newProduct);
+  } catch (error) {
+    console.error("Error creating product:", error);
+    res.status(500).json({ error: "Failed to create product" });
+  }
 }
-    }
+
 async function updateProduct(req, res) {
   
 }

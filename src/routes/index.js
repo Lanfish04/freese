@@ -14,7 +14,7 @@ const defaultRoute = [
 }
 ];
 
-defaultRoute.forEach((route)=>{
+defaultRoute.forEach((route) => {
     router.use(route.path, route.router);
 });
 

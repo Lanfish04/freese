@@ -13,16 +13,15 @@ const generateToken = (user) => {
     return token;
 }
     
-const refreshToken = (user) =>{
-    return jsonwebtoken.sign(
-        { id: user.id, role: user.role }, // payload
-        REFRESH_JWT_SECRET,                      // secret key
-        { expiresIn: "7d" }                // token expiration
-    );
-}
+// const refreshToken = (user) =>{
+//     return jsonwebtoken.sign(
+//         { id: user.id, role: user.role }, // payload
+//         REFRESH_JWT_SECRET,                      // secret key
+//         { expiresIn: "7d" }                // token expiration
+//     );
+// }
 
 
 module.exports = {
-    generateToken,
-    refreshToken
+    generateToken
 };

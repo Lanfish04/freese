@@ -2,28 +2,27 @@ const prisma = require('../config/prisma');
 
 
 async function getProducts() {
-    return prisma.Products.findMany();
+    return prisma.products.findMany();
 }
 
 async function getProductById(id) {
-return prisma.Products.findUnique({
+return prisma.products.findUnique({
     where:{id : Number(id)}
 })  
 }
 async function createProduct(data) {
     try {
-        const newProduct = await prisma.products.create({      
-            data: {
-                name : data.name,
-                price : data.price,
-                stock : data.stock,
-                image : data.image,
-                description : data.description,
-                farmer: {
-                connect: { id: data.farmerId }// Hubungkan ke farmer
-            }
-        }
-     });
+        const newProduct = await prisma.products.create({
+      data: {
+        name: data.name,
+        price: Number(data.price),
+        stock: Number(data.stock),
+        image: data.image,
+        description: data.description,
+        category: data.category,
+        farmerId: data.farmerId,
+      },
+    });
     
         console.log("Product created successfully:", newProduct);
         return newProduct

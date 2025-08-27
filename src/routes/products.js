@@ -5,7 +5,7 @@ const middleware = require("../middleware/middleware");
 
 
 router.route("/", middleware.accessValidate).get(productsCon.getProducts);
-router.route("/:id").get(productsCon.getProductById);
+router.route("/:id").get(productsCon.detailProduct);
 router.route("/").post(productsCon.createProduct);
 router.route("/:id").put(productsCon.updateProduct);
 router.route("/:id").delete(productsCon.deleteProduct);

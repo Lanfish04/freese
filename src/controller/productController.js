@@ -11,7 +11,19 @@ async function getProducts(req, res) {
   
 }
 
-async function getProductById(req, res) {
+async function detailProduct(req, res) {
+    try {
+        const { id } = req.params;
+        const productById = await product.getProductById(id);
+        if (!productById) {
+            return res.status(404).json({ error: "Product not found" });
+        }
+        res.status(200).json(productById);
+    } catch (error) {
+        console.error("Error fetching product by ID:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+
   
 }
 async function createProduct(req, res) {
@@ -66,7 +78,7 @@ async function deleteProduct(req, res) {
 }
 module.exports = { 
     getProducts,
-    getProductById,
+    detailProduct,
     createProduct,
     updateProduct,
     deleteProduct

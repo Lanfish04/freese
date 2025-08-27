@@ -2,14 +2,34 @@ const prisma = require('../config/prisma');
 
 
 async function getProducts() {
-    return prisma.products.findMany();
+    return prisma.products.findMany({
+        include :{ 
+        farmer:{
+            select:{
+                farmName: true,
+                address: true,
+                productsType: true
+                   }        
+               }
+        }
+    });
 }
 
 async function getProductById(id) {
 return prisma.products.findUnique({
-    where:{id : Number(id)}
-})  
+    where:{id : Number(id)},
+    include :{ 
+        farmer:{
+            select:{
+                farmName: true,
+                address: true,
+                productsType: true
+            }        
+    }
+        }
+    })  
 }
+
 async function createProduct(data) {
     try {
         const newProduct = await prisma.products.create({

@@ -31,8 +31,7 @@ return prisma.products.findUnique({
 }
 
 async function createProduct(data) {
-    try {
-        const newProduct = await prisma.products.create({
+    const newProduct = await prisma.products.create({
       data: {
         name: data.name,
         price: Number(data.price),
@@ -43,17 +42,30 @@ async function createProduct(data) {
         farmerId: data.farmerId,
       },
     });
-    
-        console.log("Product created successfully:", newProduct);
-        return newProduct
-    } catch (error) {
-        console.error("Error creating product:", error);
-        throw error;
-    }
+    return newProduct;
 }
 
-async function updateProduct(req, res) {
-  
+async function editProduct(id) {
+    return getProduct = await prisma.products.findUnique({
+      where: { id: Number(id) },
+    });
+    
+}
+
+async function updateProduct(id, data) {
+  const updateProduct = await prisma.products.update({
+    where: { id: Number(id) },
+    data: {
+      name: data.name,
+      price: Number(data.price),
+      stock: Number(data.stock),
+      image: data.image,
+      description: data.description,
+      category: data.category,
+    },
+  });
+
+        return updateProduct;
 }
 async function deleteProduct(req, res) {
   
@@ -62,6 +74,7 @@ module.exports = {
     getProducts,
     getProductById,
     createProduct,
+    editProduct,
     updateProduct,
     deleteProduct
 };

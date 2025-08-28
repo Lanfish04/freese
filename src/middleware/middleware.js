@@ -1,13 +1,11 @@
-const tokenUtils = require("../utils/jwt");
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken";
 
-const accessValidate = (req, res, next) => {
+export const accessValidate = (req, res, next) => {
     const {authorization} = req.headers;
     if (!authorization) {
         return res.status(401).json({ message: "Token tidak ditemukan" });
     }
    
-
     const token = authorization.split(" ")[1];
     const secret = process.env.JWT_SECRET;
     
@@ -19,9 +17,4 @@ const accessValidate = (req, res, next) => {
         console.error("Token verification failed:", error);
         return res.status(403).json({ message: "Unauthorized" });
     }
-}
-
-
-module.exports = {
-    accessValidate
 };

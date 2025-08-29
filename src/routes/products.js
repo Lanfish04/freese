@@ -19,5 +19,8 @@ router.route("/edit/:id")
 	.get(middleware.accessValidate, productsCon.showEditProduct)
 	.put(middleware.accessValidate, productsCon.updateProduct);
 
+router.route("/delete/:id")
+	.delete(middleware.accessValidate, productsCon.deleteProduct);
+
 
 module.exports=router;

@@ -74,7 +74,10 @@ async function updateProduct(id, data) {
 
         return updateProduct;
 }
-async function deleteProduct(req, res) {
+async function deleteProduct(farmerId) {
+    return prisma.products.delete({
+        where: { id: Number(farmerId) },
+    });
   
 }
 module.exports = { 

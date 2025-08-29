@@ -15,6 +15,13 @@ async function getProducts() {
     });
 }
 
+
+async function getProductsByFarmerId(farmerId) {
+    return prisma.products.findMany({
+        where: { farmerId: Number(farmerId) }
+    });
+}
+
 async function getProductById(id) {
 return prisma.products.findUnique({
     where:{id : Number(id)},
@@ -73,6 +80,7 @@ async function deleteProduct(req, res) {
 module.exports = { 
     getProducts,
     getProductById,
+    getProductsByFarmerId,
     createProduct,
     editProduct,
     updateProduct,

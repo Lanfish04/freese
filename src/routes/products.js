@@ -8,6 +8,9 @@ router.route("/")
 	.get(productsCon.getProducts)
 	.post(middleware.accessValidate, productsCon.createProduct);
 
+router.route("/myproducts")
+    .get(middleware.accessValidate, productsCon.getMyProducts);
+
 router.route("/:id")
 	.get(productsCon.detailProduct)
 	.delete(middleware.accessValidate, productsCon.deleteProduct);

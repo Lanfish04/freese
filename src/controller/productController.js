@@ -1,3 +1,4 @@
+const { parse } = require('dotenv');
 const prisma = require('../config/prisma');
 const product = require('../service/productService')
 
@@ -23,9 +24,30 @@ async function detailProduct(req, res) {
         console.error("Error fetching product by ID:", error);
         res.status(500).json({ error: "Internal server error" });
     }
-
-  
 }
+
+async function getMyProducts(req, res) {
+    try {
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
+        }
+        
+        const farmer = await prisma.farmers.findFirst({
+            where: { userId: req.user.id },
+        });
+
+        if (!farmer) {
+            return res.status(404).json({ error: "Petani tidak ditemukan, pastikan akun anda terdaftar sebagai petani" });
+        }
+
+        const products = await product.getProductsByFarmerId(farmer.id);
+        res.status(200).json(products);
+    } catch (error) {
+        console.error("Error fetching products for farmer:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+}
+
 async function createProduct(req, res) {
   try {
     const { name, price, stock, image, description, category } = req.body;
@@ -66,10 +88,29 @@ async function createProduct(req, res) {
 async function showEditProduct(req, res ) {
     try{
     const { id } = req.params;
+      if (!req.user || !req.user.id) {
+        return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
+    }
+
     const productById = await product.editProduct(id);
     if (!productById) {
-        return res.status(404).json({ error: "Product not found" });
+        return res.status(404).json({ error: "Produk tidak ditemukan" });
     }
+
+     const farmer = await prisma.farmers.findFirst({
+      where: { userId: req.user.id },
+    });
+
+    if (!farmer) {
+      return res.status(403).json({ error: "Anda bukan petani" });
+    }
+
+    // Cek kepemilikan produk
+    if (productById.farmerId !== farmer.id) {
+      return res.status(403).json({ error: "Forbidden: Milik orang lain" });
+    }
+
+    
 
 
     res.status(200).json(productById);
@@ -121,6 +162,7 @@ async function deleteProduct(req, res) {
 }
 module.exports = { 
     getProducts,
+    getMyProducts,
     detailProduct,
     createProduct,
     showEditProduct,

@@ -1,10 +1,41 @@
 const prisma = require("../config/prisma");
 
-async function getProfileById(id) {
-    return prisma.users.findUnique({
+async function getProfileById(id, res) {
+    const user = await prisma.users.findUnique({
         where: { id: Number(id) }
     });
+    if (user.role === "Farmer") {
+        return prisma.users.findUnique({
+            where: { id: Number(id) },
+            include: {
+                farmer: {
+                    select: {
+                        farmName: true,
+                        address: true,
+                        productsType: true
+                    }
+                }
+            }
+        });
+    } else if (user.role === "Buyer") {
+        return prisma.users.findUnique({
+            where: { id: Number(id) },
+            include: {
+                buyer: {
+                    select: {
+                        businessName: true,
+                        businessType: true,
+                        address: true
+                    }
+                }
+            }
+        });
+
+    } else {
+        return res.json({ error: "Role tidak dikenali" });
 }
+}
+
 
 async function updateProfile(id, data) {
     try {

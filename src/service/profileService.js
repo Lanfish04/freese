@@ -4,6 +4,9 @@ async function getProfileById(id) {
     const Finduser = await prisma.users.findUnique({
         where: { id: Number(id) }
     });
+    if(!Finduser){
+        return null;
+    }
     if (Finduser.role === "FARMER") {
         return prisma.users.findUnique({
             where: { id: Number(id) },
@@ -32,9 +35,10 @@ async function getProfileById(id) {
         });
 
     } else {
-        return res.json({ error: "Role tidak dikenali" });
+        return null;
 }
 }
+
 
 
 async function updateProfile(id, data) {
@@ -51,7 +55,7 @@ async function updateProfile(id, data) {
             data: {
                 full_name: data.full_name,
                 phone: data.phone,
-                email: data.email // Assuming email can be updated
+                email: data.email
             }
         });
         return updatedProfile; 

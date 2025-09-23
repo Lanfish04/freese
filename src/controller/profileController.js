@@ -10,7 +10,7 @@ async function getOtherProfile(req, res) {
             return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
         }
 
-        const profile = await profileService.getProfileById(id, res);
+        const profile = await profileService.getProfileById(id);
         if (!profile) {
             return res.status(404).json({ error: "Profile tidak ditemukan" });
         }

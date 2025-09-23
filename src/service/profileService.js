@@ -1,14 +1,14 @@
 const prisma = require("../config/prisma");
 
-async function getProfileById(id, res) {
-    const user = await prisma.users.findUnique({
+async function getProfileById(id) {
+    const Finduser = await prisma.users.findUnique({
         where: { id: Number(id) }
     });
-    if (user.role === "Farmer") {
+    if (Finduser.role === "FARMER") {
         return prisma.users.findUnique({
             where: { id: Number(id) },
             include: {
-                farmer: {
+                Farmers: {
                     select: {
                         farmName: true,
                         address: true,
@@ -17,11 +17,11 @@ async function getProfileById(id, res) {
                 }
             }
         });
-    } else if (user.role === "Buyer") {
+    } else if (Finduser.role === "BUYER") {
         return prisma.users.findUnique({
             where: { id: Number(id) },
             include: {
-                buyer: {
+                Buyers: {
                     select: {
                         businessName: true,
                         businessType: true,
@@ -61,3 +61,9 @@ async function updateProfile(id, data) {
         throw error;
     }
 }
+
+
+module.exports = {
+    getProfileById,
+    updateProfile
+};

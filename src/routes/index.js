@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const authRouter = require("./auth")
-const productsRouter = require("./products")
+const authRouter = require("./auth");
+const productsRouter = require("./products");
+const profileRouter = require("./profile");
+
 const defaultRoute = [
 {
     path:"/auth",
@@ -11,7 +13,12 @@ const defaultRoute = [
 {
     path:"/products",
     router:productsRouter,
+},
+{
+    path:"/profile",
+    router:profileRouter,
 }
+
 ];
 
 defaultRoute.forEach((route) => {
@@ -19,4 +26,4 @@ defaultRoute.forEach((route) => {
 });
 
 
-module.exports=router
+module.exports = router;

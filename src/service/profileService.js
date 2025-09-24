@@ -40,34 +40,65 @@ async function getProfileById(id) {
 }
 
 
+async function updateProfileById(id, data) {
+    const user = await prisma.users.findUnique({
+        where: { id: Number(id) }
+    });
 
-async function updateProfile(id, data) {
-    try {
-        const role = await prisma.users.findUnique({
-            where: { id: Number(id) },
-        });
-        if (!role) {
-            throw new Error("User not found");
+    if (!user) return null;
+
+    if (user.role === "FARMER") {
+    return prisma.users.update({
+        where: { id: Number(id) },
+        data: {
+            ...(data.full_name && { full_name: data.full_name }),
+            ...(data.email && { email: data.email }),
+            ...(data.phone && { phone: data.phone }),
+            Farmers: (data.farmName || data.address || data.productsType)
+                ? {
+                    update: {
+                        ...(data.farmName && { farmName: data.farmName }),
+                        ...(data.address && { address: data.address }),
+                        ...(data.productsType && { productsType: data.productsType })
+                    }
+                }
+                : undefined
+        },
+        include: {
+            Farmers: true
         }
-        else if (role.role === "Farmer") {
-          const updatedProfile = await prisma.users.update({
-            where: { id: Number(id) },
-            data: {
-                full_name: data.full_name,
-                phone: data.phone,
-                email: data.email
-            }
-        });
-        return updatedProfile; 
-        }
-    } catch (error) {
-        console.error("Error updating profile:", error);
-        throw error;
-    }
+    });
 }
+
+if (user.role === "BUYER") {
+    return prisma.users.update({
+        where: { id: Number(id) },
+        data: {
+            ...(data.full_name && { full_name: data.full_name }),
+            ...(data.email && { email: data.email }),
+            ...(data.phone && { phone: data.phone }),
+            Buyers: (data.businessName || data.businessType || data.address)
+                ? {
+                    update: {
+                        ...(data.businessName && { businessName: data.businessName }),
+                        ...(data.businessType && { businessType: data.businessType }),
+                        ...(data.address && { address: data.address })
+                    }
+                }
+                : undefined
+        },
+        include: {
+            Buyers: true
+        }
+    });
+}
+
+    return null;
+}
+
 
 
 module.exports = {
     getProfileById,
-    updateProfile
+    updateProfileById,
 };

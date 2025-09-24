@@ -12,7 +12,7 @@ async function getOtherProfile(req, res) {
 
         const profile = await profileService.getProfileById(id);
         if (!profile) {
-            return res.status(404).json({ error: "Profile tidak ditemukan" });
+            return res.status(404).json({ error: "Profile tidak ditemukan"});
         }
         res.status(200).json(profile);
     } catch (error) {
@@ -44,20 +44,33 @@ async function updateProfile(req, res) {
         if (!req.user || !req.user.id) {    
             return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
         }
-        const updatedProfile = await profileService.updateProfile(req.user.id, req.body);
+
+        const updatedProfile = await profileService.updateProfileById(req.user.id, req.body);
+
         if (!updatedProfile) {
             return res.status(404).json({ error: "Profile tidak ditemukan" });
         }       
+
+        // Filter response -> jangan kirim email / password
+        const safeProfile = {
+            id: updatedProfile.id,
+            name: updatedProfile.name,
+            phone: updatedProfile.phone,
+            role: updatedProfile.role,
+            ...(updatedProfile.Farmers && { Farmers: updatedProfile.Farmers }),
+            ...(updatedProfile.Buyers && { Buyers: updatedProfile.Buyers })
+        };
+
         res.status(200).json({
             message: "Profile updated successfully",
-            profile: updatedProfile
+            profile: safeProfile
         });
-    }   
-    catch (error) {
+    } catch (error) {
         console.error("Error updating profile:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 }
+
 
 module.exports = {
     getOtherProfile,

@@ -11,6 +11,7 @@ router.route("/:id")
 
 router.route("/edit")
     .get(middleware.accessValidate, profileCon.getMyProfile)
-    .put(middleware.accessValidate, profileCon.updateProfile);
-    
+    .put(middleware.accessValidate, profileCon.updateProfile)
+    .delete(middleware.accessValidate, profileCon.deleteProfile);
+
 module.exports = router;

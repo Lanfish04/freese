@@ -97,8 +97,16 @@ if (user.role === "BUYER") {
 }
 
 
+async function deleteProfileById(id) {
+    return prisma.users.delete({
+        where: { id: Number(id) }
+    });
+}
+
 
 module.exports = {
     getProfileById,
     updateProfileById,
+    deleteProfileById
+
 };

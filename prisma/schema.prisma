@@ -44,6 +44,7 @@ model Buyers {
   updatedAt DateTime @updatedAt
   
   user      Users     @relation(fields: [userId], references: [id])
+  transactions Transactions[]
 } 
 
 model Farmers {
@@ -57,6 +58,7 @@ model Farmers {
   
   user      Users     @relation(fields: [userId], references: [id])
   Products Products[]
+  transactions Transactions[]
 }
 
 model Products {
@@ -72,6 +74,22 @@ model Products {
   updatedAt DateTime @updatedAt
 
   farmer Farmers @relation(fields: [farmerId], references: [id])
+  transactions Transactions[]
 }
 
+model Transactions {
+  id        Int      @id @default(autoincrement())
+  buyerId   Int
+  farmerId Int
+  productId Int
+  quantity Int
+  totalPrice Float
+  status String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Products @relation(fields: [productId], references: [id])
+  buyer Buyers @relation(fields: [buyerId], references: [id])
+  farmer Farmers @relation(fields: [farmerId], references: [id])
+} 
 

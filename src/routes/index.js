@@ -17,8 +17,11 @@ const defaultRoute = [
 {
     path:"/profile",
     router:profileRouter,
-}
-
+},
+{
+    path:"/transaction",
+    router:require("./transaction"),
+}   
 ];
 
 defaultRoute.forEach((route) => {

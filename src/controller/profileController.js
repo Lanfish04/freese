@@ -71,10 +71,27 @@ async function updateProfile(req, res) {
     }
 }
 
+async function deleteProfile(req, res) {
+    try {
+        if (!req.user || !req.user.id) {    
+            return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
+        }
+        const deletedProfile = await profileService.deleteProfileById(req.user.id);
+        if (!deletedProfile) {
+            return res.status(404).json({ error: "Profile tidak ditemukan" });
+        }
+        res.status(200).json({ message: "Profile deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting profile:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+}
+
 
 module.exports = {
     getOtherProfile,
     getMyProfile,
-    updateProfile
+    updateProfile,
+    deleteProfile    
 };
         

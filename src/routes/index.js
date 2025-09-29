@@ -3,6 +3,7 @@ const router = express.Router();
 const authRouter = require("./auth");
 const productsRouter = require("./products");
 const profileRouter = require("./profile");
+const transactionRouter = require("./transaction");
 
 const defaultRoute = [
 {
@@ -20,7 +21,7 @@ const defaultRoute = [
 },
 {
     path:"/transaction",
-    router:require("./transaction"),
+    router:transactionRouter,
 }   
 ];
 

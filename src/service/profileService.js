@@ -2,7 +2,9 @@ const prisma = require("../config/prisma");
 
 async function getProfileById(id) {
     const Finduser = await prisma.users.findUnique({
-        where: { id: Number(id) }
+        where: { id: Number(id) },
+        
+
     });
     if(!Finduser){
         return null;
@@ -10,7 +12,11 @@ async function getProfileById(id) {
     if (Finduser.role === "FARMER") {
         return prisma.users.findUnique({
             where: { id: Number(id) },
-            include: {
+            select: { 
+            full_name: true,
+            phone: true,
+            email: true,
+            role: true,
                 Farmers: {
                     select: {
                         farmName: true,
@@ -18,12 +24,16 @@ async function getProfileById(id) {
                         productsType: true
                     }
                 }
-            }
-        });
+        } 
+    });
     } else if (Finduser.role === "BUYER") {
         return prisma.users.findUnique({
             where: { id: Number(id) },
-            include: {
+            select: { 
+            full_name: true,
+            phone: true,
+            email: true,
+            role: true,
                 Buyers: {
                     select: {
                         businessName: true,
@@ -40,7 +50,18 @@ async function getProfileById(id) {
 }
 
 
-async function updateProfileById(id, data) {
+async function getMyAkunProfile(id) {
+    return prisma.users.findUnique({
+        where: { id: Number(id) },
+        select: {   
+            email: true,
+            password: true
+        }
+    });
+}
+
+
+async function updateMyDataProfile(id, data) {
     const user = await prisma.users.findUnique({
         where: { id: Number(id) }
     });
@@ -52,7 +73,6 @@ async function updateProfileById(id, data) {
         where: { id: Number(id) },
         data: {
             ...(data.full_name && { full_name: data.full_name }),
-            ...(data.email && { email: data.email }),
             ...(data.phone && { phone: data.phone }),
             Farmers: (data.farmName || data.address || data.productsType)
                 ? {
@@ -75,7 +95,6 @@ if (user.role === "BUYER") {
         where: { id: Number(id) },
         data: {
             ...(data.full_name && { full_name: data.full_name }),
-            ...(data.email && { email: data.email }),
             ...(data.phone && { phone: data.phone }),
             Buyers: (data.businessName || data.businessType || data.address)
                 ? {
@@ -96,6 +115,16 @@ if (user.role === "BUYER") {
     return null;
 }
 
+async function updateMyAkunProfile(id, data) {
+    return prisma.users.update({
+        where: { id: Number(id) },
+        data: {
+            ...(data.email && { email: data.email }),
+            ...(data.password && { password: data.password })
+        }
+    });
+}
+            
 
 async function deleteProfileById(id) {
     return prisma.users.delete({
@@ -106,7 +135,9 @@ async function deleteProfileById(id) {
 
 module.exports = {
     getProfileById,
-    updateProfileById,
+    getMyAkunProfile,
+    updateMyDataProfile,
+    updateMyAkunProfile,
     deleteProfileById
 
 };

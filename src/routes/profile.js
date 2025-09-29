@@ -9,9 +9,12 @@ router.route("/")
 router.route("/:id")
     .get(middleware.accessValidate, profileCon.getOtherProfile);
 
-router.route("/edit")
+router.route("/edit/data")
     .get(middleware.accessValidate, profileCon.getMyProfile)
-    .put(middleware.accessValidate, profileCon.updateProfile)
+    .put(middleware.accessValidate, profileCon.updateDataProfile)
     .delete(middleware.accessValidate, profileCon.deleteProfile);
 
+router.route("/edit/akun")
+    .get(middleware.accessValidate, profileCon.getMyProfile)
+    .put(middleware.accessValidate, profileCon.updateAkunProfile);
 module.exports = router;

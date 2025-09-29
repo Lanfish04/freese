@@ -7,7 +7,8 @@ async function findUser(email) {
     });
 }
 async function addUser(data) {
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const password = data.password;
+    const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await prisma.users.create({
         data: {
             email: data.email,

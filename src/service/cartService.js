@@ -39,8 +39,10 @@ async function addToCart(userId, data) {
 
 
 async function getCartByUserId(id) {
+    const buyer = await prisma.buyers.findUnique({
+  where: { userId: id }});
     return prisma.cart.findMany({
-        where: { buyerId : Number(id) },
+        where: { buyerId : buyer.id },
         include: {
             product: true
         }

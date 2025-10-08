@@ -31,8 +31,8 @@ return prisma.products.findUnique({
                 farmName: true,
                 address: true,
                 productsType: true
-            }        
-    }
+                }        
+            }
         }
     })  
 }

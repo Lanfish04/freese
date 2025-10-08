@@ -7,7 +7,8 @@ async function getProducts(req, res) {
         const products = await product.getProducts();
         res.status(200).json(products);
     }catch{
-
+        console.error("Error fetching products:", error);
+        res.status(500).json({ error: "Internal server error" });
     }
   
 }

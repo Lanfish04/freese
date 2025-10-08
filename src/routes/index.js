@@ -4,6 +4,7 @@ const authRouter = require("./auth");
 const productsRouter = require("./products");
 const profileRouter = require("./profile");
 const transactionRouter = require("./transaction");
+const cartRouter = require("./cart");
 
 const defaultRoute = [
 {
@@ -22,6 +23,10 @@ const defaultRoute = [
 {
     path:"/transaction",
     router:transactionRouter,
+},
+{
+    path:"/cart",
+    router:cartRouter,
 }   
 ];
 

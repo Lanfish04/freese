@@ -65,12 +65,13 @@ model Farmers {
 model Products {
   id        Int      @id @default(autoincrement())
   farmerId  Int
-  name String
-  price Float
-  stock Int
-  category String
-  image String?
-  description String?
+  name  String
+  price  Float
+  stock  Int
+  unit  String
+  category  String
+  image  String?
+  description  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -84,6 +85,7 @@ model Cart {
   buyerId   Int
   productId Int
   quantity  Int      @default(1)
+  unit String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

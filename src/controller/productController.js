@@ -42,7 +42,9 @@ async function getMyProducts(req, res) {
         }
 
         const products = await product.getProductsByFarmerId(farmer.id);
-        res.status(200).json(products);
+        res.status(200).json({
+          message: "Berhasil menampilkan produk",
+          products});
     } catch (error) {
         console.error("Error fetching products for farmer:", error);
         res.status(500).json({ error: "Internal server error" });
@@ -51,7 +53,7 @@ async function getMyProducts(req, res) {
 
 async function createProduct(req, res) {
   try {
-    const { name, price, stock, image, description, category } = req.body;
+    const { name, price, stock, unit, image, description, category } = req.body;
     if (!req.user || !req.user.id) {
       return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
     }
@@ -74,12 +76,15 @@ async function createProduct(req, res) {
       price: price,
       stock: stock,
       image: image,
+      unit: unit,
       description: description,
       category: category,
       farmerId: farmer.id,
     });
 
-    res.status(201).json(newProduct);
+    res.status(201).json({
+      message: "Produk berhasil dibuat",
+      newProduct });
   } catch (error) {
     console.error("Error creating product:", error);
     res.status(500).json({ error: "Failed to create product" });
@@ -147,7 +152,10 @@ async function updateProduct(req, res) {
     }
 
     const updateProduct = await product.updateProduct(id, data, farmer.id);
-    res.status(200).json(updateProduct);
+    res.status(200).json(
+      {
+        message: "Produk berhasil diupdate",
+        updateProduct});
     }catch (error) {
         console.error("Error updating product:", error);
         res.status(500).json({ error: "Internal server error" });

@@ -43,6 +43,7 @@ async function createProduct(data) {
         name: data.name,
         price: Number(data.price),
         stock: Number(data.stock),
+        unit: data.unit,
         image: data.image,
         description: data.description,
         category: data.category,

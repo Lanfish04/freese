@@ -7,6 +7,7 @@ async function getCart(req, res) {
             return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
         }
         const cartItems = await cartService.getCartByUserId(req.user.id);
+        
         res.status(200).json({
             message : "Berhasil menampilkan cart",
             data : {cartItems},

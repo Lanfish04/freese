@@ -9,12 +9,13 @@ async function login(req, res) {
         const user = await authService.findUser(email);  
         const accessToken = tokenUtils.generateToken(user);
         
+
+        
         if (password.length < 8) {
         res.status(400).json({ message: "Password harus memiliki minimal 8 karakter" });
          }
         const isPasswordValid = await bcrypt.compare(password, user.password);
-         if (!user || !user.password || !isPasswordValid) {
-        
+         if (!user.email || !user.password || !isPasswordValid) {
          return res.status(401).json({ message: "Email atau password salah" });
         }
     return res.status(200).json({

@@ -46,6 +46,7 @@ async function getCartByUserId(id) {
         include: {
             product: true
         }
+        
     });
 }
 

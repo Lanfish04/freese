@@ -45,24 +45,68 @@ async function addToCart(req, res) {
       return res.status(403).json({ error: "Forbidden" });
     }
     const result = await cartService.addToCart(userId, req.body);
-    if (result) {
-      cartService.updatedStock(userId, req.body);
-      res.status(200).json({
+  //   if (result) {
+  //     cartService.updatedStock(userId, req.body);
+  //     res.status(200).json({
+  //     message: "Produk berhasil ditambahkan ke keranjang",
+  //     data: result
+  //   });
+  // }
+    res.status(200).json({
       message: "Produk berhasil ditambahkan ke keranjang",
       data: result
     });
-  }
-    // res.status(200).json({
-    //   message: "Produk berhasil ditambahkan ke keranjang",
-    //   data: result
-    // });
   } catch (error) {
     console.error("Error add to cart:", error);
     res.status(400).json({ error: error.message });
   }
 }
 
+async function editCartItem(req, res) {
+  try {
+    const userId = req.user.id;
+    if (!req.user || !userId) {
+        return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
+    }
+    if (req.user.role !== 'BUYER') {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const result = await cartService.updateCartItem(userId, req.body);
+    res.status(200).json({
+      message: "Stok produk berhasil diperbarui",
+      data: result
+    });
+  }
+  catch (error) {
+    console.error("Error updating stock:", error);
+    res.status(400).json({ error: error.message });
+  } 
+}
+
+async function deleteCartItem(req, res) {
+  try {
+    const userId = req.user.id;
+    if (!req.user || !userId) {
+        return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
+    }
+    if (req.user.role !== 'BUYER') {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const result = await cartService.removeCartItem(userId, req.body);
+    res.status(200).json({
+      message: "Item keranjang berhasil dihapus",
+      data: result
+    });
+  } catch (error) {
+    console.error("Error deleting cart item:", error);
+    res.status(400).json({ error: error.message });
+  } 
+}
+
 module.exports = {
     getCart,
-    addToCart
+    addToCart,
+  editCartItem,
+  deleteCartItem
 };

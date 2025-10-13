@@ -35,36 +35,30 @@ async function addToCart(userId, data) {
             quantity: data.quantity ? Number(data.quantity) : 1 
         },
         include: {
-         product: {
-            select: {
-                id: true,
-                name: true,
-                price: true
-                    }
-                  }
-             }
+         product: true
+        }
         });
 }
 
-async function updatedStock(userId, data) {
-    const buyer = await prisma.buyers.findUnique({
-    where: { userId: userId }});
+// async function updatedStock(userId, data) {
+//     const buyer = await prisma.buyers.findUnique({
+//     where: { userId: userId }});
 
-    const productStock = await prisma.products.findUnique({
-        where: {id : Number(data.productId)}
-    })
+//     const productStock = await prisma.products.findUnique({
+//         where: {id : Number(data.productId)}
+//     })
 
-    const decreasedStock = prisma.products.update({
-        where: { id: Number(data.productId) },
-        data: { stock: productStock.stock - (data.quantity) },
-    });
+//     const decreasedStock = prisma.products.update({
+//         where: { id: Number(data.productId) },
+//         data: { stock: productStock.stock - (data.quantity) },
+//     });
 
-    if (decreasedStock < 0) {
-        throw new Error("Stok produk tidak mencukupi"); 
-    }
-    return decreasedStock;
+//     if (decreasedStock < 0) {
+//         throw new Error("Stok produk tidak mencukupi"); 
+//     }
+//     return decreasedStock;
     
-}
+// }
 
 async function getCartByUserId(id) {
     const buyer = await prisma.buyers.findUnique({
@@ -78,10 +72,37 @@ async function getCartByUserId(id) {
     });
 }
 
-async function updateCartItem(id, quantity) {
+async function updateCartItem(userId, data) {
+    const buyer = await prisma.buyers.findUnique({
+  where: { userId: userId }});
+    const cartItem = await prisma.cart.findFirst({
+        where: {
+            buyerId : buyer.id,
+            productId : Number(data.productId)
+         }
+    });
+    if (!buyer) {
+        throw new Error("Pembeli tidak ditemukan");
+    } 
+
+    if (!cartItem) {
+        throw new Error("Item keranjang tidak ditemukan");
+    }
+
+    const stockProduct = await prisma.products.findUnique({
+        where: { id: cartItem.productId }
+    });
+    if (data.quantity <= 0) {
+        throw new Error("Kuantitas harus lebih besar dari 0");
+    }
+    if (data.quantity > stockProduct.stock) {
+        throw new Error("Stok produk tidak mencukupi");
+    }
+
+
     return prisma.cart.update({
-        where: { id: Number(id) },
-        data: { quantity: Number(quantity) },
+        where: { id: cartItem.id },
+        data: { quantity: Number(data.quantity) },
         include: { product: true }
     });
 }
@@ -94,7 +115,6 @@ async function removeCartItem(id) {
 
 module.exports = {
     addToCart,
-    updatedStock,
     getCartByUserId,
     updateCartItem,
     removeCartItem

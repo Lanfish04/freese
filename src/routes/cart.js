@@ -6,7 +6,9 @@ const middleware = require("../middleware/middleware");
 
 router.route('/')
     .get(middleware.accessValidate, cartCon.getCart)
-    .post(middleware.accessValidate, cartCon.addToCart);
+    .post(middleware.accessValidate, cartCon.addToCart)
+    .put(middleware.accessValidate, cartCon.editCartItem)
+    .delete(middleware.accessValidate, cartCon.deleteCartItem)
 
 
 module.exports=router;

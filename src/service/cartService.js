@@ -107,9 +107,38 @@ async function updateCartItem(userId, data) {
     });
 }
 
-async function removeCartItem(id) {
+async function removeCartItem(userId, productId) {
+
+    const buyer = await prisma.buyers.findUnique({
+    where: { userId: userId }});
+    const cartItem = await prisma.cart.findFirst({
+        where: {
+            buyerId : buyer.id,
+            productId : Number(productId)
+         }
+    });
+    if (!buyer) {
+        throw new Error("Pembeli tidak ditemukan");
+    } 
+
+    if (!cartItem) {
+        throw new Error("Item keranjang tidak ditemukan");
+    }
+
     return prisma.cart.delete({
-        where: { id: Number(id) }
+        where: { id: cartItem.id}
+    });
+}
+
+async function deleteAllItem(userId) {
+ const buyer = await prisma.buyers.findUnique({
+    where: { userId: userId }});
+    if (!buyer) {
+        throw new Error("Pembeli tidak ditemukan");
+    } 
+
+    return prisma.cart.deleteMany({
+        where: { buyerId : buyer.id }
     });
 }
 
@@ -117,5 +146,6 @@ module.exports = {
     addToCart,
     getCartByUserId,
     updateCartItem,
-    removeCartItem
+    removeCartItem,
+    deleteAllItem
 };

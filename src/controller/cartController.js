@@ -87,13 +87,19 @@ async function editCartItem(req, res) {
 async function deleteCartItem(req, res) {
   try {
     const userId = req.user.id;
+    const productId = req.params.productId;
+
+    if (isNaN(productId)) {
+      return res.status(400).json({ error: "productId tidak valid" });
+    }
+
     if (!req.user || !userId) {
         return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
     }
     if (req.user.role !== 'BUYER') {
       return res.status(403).json({ error: "Forbidden" });
     }
-    const result = await cartService.removeCartItem(userId, req.body);
+    const result = await cartService.removeCartItem(userId, productId);
     res.status(200).json({
       message: "Item keranjang berhasil dihapus",
       data: result
@@ -104,9 +110,31 @@ async function deleteCartItem(req, res) {
   } 
 }
 
+async function clearCart(req, res) {
+  try {
+    const userId = req.user.id;
+    if (!req.user || !userId) {
+        return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
+    }
+    if (req.user.role !== 'BUYER') {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const result = await cartService.deleteAllItem(userId);
+    res.status(200).json({
+      message: "Keranjang berhasil dikosongkan",
+      data: result
+    });
+  } catch (error) {
+    console.error("Error clearing cart:", error);
+    res.status(400).json({ error: error.message });
+  }
+  
+}
+
 module.exports = {
     getCart,
     addToCart,
-  editCartItem,
-  deleteCartItem
+    editCartItem,
+    deleteCartItem,
+    clearCart
 };

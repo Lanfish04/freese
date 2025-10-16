@@ -1,60 +1,69 @@
 const prisma = require("../config/prisma");
 
-async function createTransaction(buyerId, data) {
-  const product = await prisma.products.findUnique({
-    where: { id: Number(data.productId) }
-  });
 
-  if (!product) throw new Error("Produk tidak ditemukan");
-  if (product.stock < data.quantity) throw new Error("Stok tidak mencukupi");
+async function getHistoryTransaction(userId) {
+    const buyer = await prisma.buyers.findUnique({
+        where: { userId: userId }
+    });
+    if (!buyer) {
+        throw new Error("Buyer tidak ditemukan");
+    }
+    return prisma.transactions.findMany({
+        where: { buyerId: buyer.id },
+        include: { product: true }
+    });
+}
 
-  const totalPrice = product.price * data.quantity;
+
+async function createOneTransaction(userId, data) {
   const buyer = await prisma.buyers.findUnique({
-    where: { userId: buyerId }
+  where: { userId: userId }});
+  
+  if (!buyer) {
+    throw new Error("Buyer tidak ditemukan");
+  }
+
+  const products = await prisma.products.findFirst({
+    where:{ id: Number(data.productId)}
+  })
+
+  if (!products) {
+    throw new Error("Produk tidak ditemukan");
+  }
+  
+  if (products.stock < data.quantity) {
+    throw new Error("Stok produk tidak mencukupi");
+  }
+
+  const totalPrice = products.price * data.quantity;
+
+  await prisma.products.update({
+    where: { id: products.id },
+    data: { stock: products.stock - data.quantity },
   });
-  const shippingAddress = data.shipAddress || buyer.address;
-  if (!shippingAddress) throw new Error("Alamat pengiriman tidak ditemukan");
 
   const transaction = await prisma.transactions.create({
     data: {
-      buyer:{
-        connect: { id: buyerId }
-      },
-      product:{
-        connect: { id: Number(data.productId) }
-      },
-      quantity: data.quantity,
-      totalPrice,
-      shipAddress: shippingAddress, 
-      paymentMethod: data.paymentMethod || "QRIS",
-      paymentStatus: "UNPAID",
-      orderStatus: "PENDING"
-    },
-    include: {
-      Product: true
-    }
+      buyerId: buyer.id,
+      productId: products.id,
+      totalPrice: totalPrice,
+      quantity: Number(data.quantity),
+      shipAddress: data.shipAddress || buyer.address,
+      status: "PENDING",
+      paymentMethod: data.paymentMethod || "TRANSFER_BANK"
+    }, include: { product: true, buyer: true }
+      
   });
-
   return transaction;
 }
 
-async function getTransactionHistory(userId) {
-  const transactions = await prisma.transactions.findMany({
-    where: { buyerId: userId },
-    include: {
-      Products: true
-    },  
-    orderBy: {
-      createdAt: 'desc'
-    }
-  });
-  return transactions;
-}
 
 
-
-module.exports = { 
-    createTransaction,
-    getTransactionHistory
-
+module.exports = {
+  createOneTransaction,
+  getHistoryTransaction
 };
+
+  
+  
+  

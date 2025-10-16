@@ -9,8 +9,10 @@ async function historyTransaction(req, res) {
         if (req.user.role !== "BUYER") {
             return res.status(403).json({ error: "Hanya buyer yang bisa mengakses riwayat transaksi" });
         }
-        const transactions = await transactionsService.getTransactionHistory(req.user.id);
-        res.status(200).json(transactions);
+        const transactions = await transactionsService.getHistoryTransaction(req.user.id);
+        res.status(200).json({
+            message: "Riwayat transaksi berhasil diambil",
+            transactions});
     } catch (error) {
         console.error("Error fetching transaction history:", error);
         res.status(500).json({ error: "Internal server error" });
@@ -20,13 +22,13 @@ async function historyTransaction(req, res) {
 
 
 
-async function createTransaction(req, res) {
+async function createOneTransaction(req, res) {
   try {
     if (!req.user || req.user.role !== "BUYER") {
       return res.status(403).json({ error: "Hanya buyer yang bisa membuat transaksi" });
     }
 
-    const transaction = await transactionsService.createTransaction(req.user.id, req.body);
+    const transaction = await transactionsService.createOneTransaction(req.user.id, req.body);
 
     res.status(201).json({
       message: "Transaksi berhasil dibuat",
@@ -40,6 +42,6 @@ async function createTransaction(req, res) {
 
 
 module.exports = {
-    createTransaction,
+    createOneTransaction,
     historyTransaction
 };

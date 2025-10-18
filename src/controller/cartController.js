@@ -16,6 +16,7 @@ async function getCart(req, res) {
       productName: item.product.name,
       productImage: item.product.image,
       quantity: item.quantity,
+      isSelected : item.isSelected,
       unit: item.product.unit,
       price: item.product.price,
       totalPrice: item.quantity * item.product.price
@@ -131,10 +132,37 @@ async function clearCart(req, res) {
   
 }
 
+async function itemSelected(req, res) {
+ try{
+  const userId = req.user.id;
+  const isSelected = Boolean(req.body);
+  const cartId = Number(req.params.id);
+  if (!req.user || !userId) {
+    return res.status(401).json({ message: "User tidak ditemukan atau belum login" });
+  }
+
+  if (req.user.role !== 'BUYER') {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+
+  const updatedCart = await cartService.selectionItemCart(userId, cartId, isSelected);
+
+  res.status(200).json({
+      message: "Berhasil dipilih",
+      data: updatedCart
+    });
+}catch (error) {
+    console.error("Error updating cart item:", error);
+    res.status(400).json({ message: error.message });
+  }
+
+}
+
 module.exports = {
     getCart,
     addToCart,
     editCartItem,
     deleteCartItem,
-    clearCart
+    clearCart,
+    itemSelected
 };

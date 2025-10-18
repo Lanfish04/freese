@@ -142,10 +142,37 @@ async function deleteAllItem(userId) {
     });
 }
 
+
+async function selectionItemCart(userId, cartId, isSelected) {
+    const buyer = await prisma.buyers.findUnique({
+        where:{userId : userId},   
+    });
+    
+    if (!buyer){
+        throw new Error ("Buyer tidak ditemukan");
+    }
+
+    const cartItem = await prisma.cart.findFirst({
+        where : {
+            id : Number(cartId),
+            buyerId : buyer.id}
+});
+    if (!cartItem){
+        throw new Error ("Item tidak ditemukan");
+    }
+
+    return prisma.cart.update({
+        where : {id : Number(cartId)},
+        data : { isSelected : Boolean(isSelected) },
+        include : {product:true}
+    });
+}
+
 module.exports = {
     addToCart,
     getCartByUserId,
     updateCartItem,
     removeCartItem,
-    deleteAllItem
+    deleteAllItem,
+    selectionItemCart
 };

@@ -85,6 +85,7 @@ model Cart {
   buyerId   Int
   productId Int
   quantity  Int      @default(1)
+  isSelected Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   buyer   Buyers   @relation(fields: [buyerId], references: [id])

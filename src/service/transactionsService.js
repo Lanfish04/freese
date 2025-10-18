@@ -57,11 +57,63 @@ async function createOneTransaction(userId, data) {
   return transaction;
 }
 
+async function createManyTransactions(userId, data) {
+  const buyer = await prisma.buyers.findUnique({
+    where: { userId: userId }
+  });
+  if (!buyer) {
+    throw new Error("Buyer tidak ditemukan");
+  }
 
+  const selectedItems = await prisma.cart.findMany({
+    where: { 
+    buyerId: buyer.id,
+    isSelected : true},
+    include: { product: true }
+  });
+
+  if(selectedItems.length === 0) {
+    throw new Error("Tidak ada item yang dipilih");
+  }
+
+  // const createdTransactions = [];
+
+  // for (const item of items) {
+  //   if (item.product.stock < item.quantity) {
+  //     throw new Error(`Stok produk ${item.product.name} tidak mencukupi`);
+  //   }
+
+  //   const totalPrice = item.product.price * item.quantity;
+  //   await prisma.products.update({
+  //     where: { id: item.product.id },
+  //     data: { stock: item.product.stock - item.quantity },
+  //   });
+
+  //   const transaction = await prisma.transactions.create({
+  //     data: {
+  //       buyerId: buyer.id,
+  //       productId: item.product.id,
+  //       totalPrice: totalPrice,
+  //       quantity: item.quantity,
+  //       shipAddress: transactionsData.shipAddress || buyer.address,
+  //       status: "PENDING",
+  //       paymentMethod: transactionsData.paymentMethod || "TRANSFER_BANK"
+  //     },
+  //     include: { product: true, buyer: true }
+  //   });
+  //   createdTransactions.push(transaction);
+  // } 
+  // await prisma.cart.deleteMany({
+  //   where: { buyerId: buyer.id }
+  // });
+  // return createdTransactions;
+
+}
 
 module.exports = {
   createOneTransaction,
-  getHistoryTransaction
+  getHistoryTransaction,
+  createManyTransactions
 };
 
   

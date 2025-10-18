@@ -40,8 +40,25 @@ async function createOneTransaction(req, res) {
   }
 }
 
+async function createSelectedTransactions(req, res) {
+  try {
+    if (!req.user || req.user.role !== "BUYER") {
+      return res.status(403).json({ error: "Hanya buyer yang bisa membuat transaksi" });
+    }
+    const transactions = await transactionsService.createManyTransactions(req.user.id, req.body);
+
+    res.status(201).json({  
+      message: "Transaksi berhasil dibuat",
+      transactions
+    });
+  } catch (error) {
+    console.error("Error create transactions:", error);
+    res.status(400).json({ error: error.message });
+  }
+}
 
 module.exports = {
     createOneTransaction,
-    historyTransaction
+    historyTransaction,
+    createSelectedTransactions
 };

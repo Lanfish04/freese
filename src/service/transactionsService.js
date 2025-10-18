@@ -65,17 +65,66 @@ async function createManyTransactions(userId, data) {
     throw new Error("Buyer tidak ditemukan");
   }
 
-  const selectedItems = await prisma.cart.findMany({
-    where: { 
-    buyerId: buyer.id,
-    isSelected : true},
+
+
+ const selectedItems = await prisma.cart.findMany({
+    where: {
+       buyerId: buyer.id, 
+       isSelected: true },
     include: { product: true }
   });
 
-  if(selectedItems.length === 0) {
+  if (selectedItems.length === 0) {
     throw new Error("Tidak ada item yang dipilih");
   }
 
+  // 3️⃣ Proses setiap item cart yang dipilih
+  const transactionsData = [];
+
+  for (const item of selectedItems) {
+    const product = item.product;
+
+    if (!product) {
+      throw new Error(`${product.name} tidak ditemukan`);
+    }
+
+    if (product.stock < item.quantity) {
+      throw new Error(`Stok produk ${product.name} tidak mencukupi`);
+    }
+
+    const totalPrice = product.price * item.quantity;
+
+    // Kurangi stok produk
+    await prisma.products.update({
+      where: { id: product.id },
+      data: { stock: product.stock - item.quantity },
+    });
+
+    // Simpan data transaksi
+    transactionsData.push({
+      buyerId: buyer.id,
+      productId: product.id,
+      quantity: item.quantity,
+      totalPrice,
+      status: "PENDING",
+      shipAddress: data.shipAddress || buyer.address,
+      paymentMethod: data.paymentMethod || "TRANSFER_BANK",
+      createdAt: new Date(),
+    });
+  }
+
+  // 4️⃣ Simpan semua transaksi sekaligus
+  await prisma.transactions.createMany({
+    data: transactionsData,
+  });
+
+  // 5️⃣ (Opsional) Hapus item dari cart setelah transaksi
+  await prisma.cart.deleteMany({
+    where: { buyerId: buyer.id, isSelected: true },
+  });
+
+  return transactionsData;
+}
   // const createdTransactions = [];
 
   // for (const item of items) {
@@ -107,8 +156,6 @@ async function createManyTransactions(userId, data) {
   //   where: { buyerId: buyer.id }
   // });
   // return createdTransactions;
-
-}
 
 module.exports = {
   createOneTransaction,

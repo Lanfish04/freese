@@ -113,18 +113,94 @@ async function createManyTransactions(userId, data) {
     });
   }
 
-  // 4️⃣ Simpan semua transaksi sekaligus
   await prisma.transactions.createMany({
     data: transactionsData,
   });
-
-  // 5️⃣ (Opsional) Hapus item dari cart setelah transaksi
   await prisma.cart.deleteMany({
     where: { buyerId: buyer.id, isSelected: true },
   });
-
   return transactionsData;
 }
+
+async function uploadPaymentProof(userId, transactionId, paymentProofUrl) {
+  const buyer = await prisma.buyers.findUnique({
+    where: { userId: userId }
+  });
+
+if(!buyer) {
+  throw new Error("Buyer tidak ditemukan");
+}
+
+const transaction = await prisma.transactions.findUnique({
+  where: { id: Number(transactionId) }
+});
+
+if (!transaction) {
+  throw new Error("Transaksi tidak ditemukan");
+}
+
+if (!transaction.buyerId === buyer.id) {
+  throw new Error("Anda tidak berhak mengunggah bukti pembayaran untuk transaksi ini");
+}
+
+
+return prisma.transactions.update({
+  where: { id: Number(transactionId) },
+  data: {
+    paymentProof: paymentProofUrl,
+    status: "PAID",
+    paymentStatus: "PAID",
+  }
+});
+} 
+
+async function editPaymentStatus(userId, data) {
+  const farmer = await prisma.farmers.findUnique({
+      where: { userId: userId }
+    });
+
+    if (!farmer){
+      throw new Error("Farmer tidak ditemukan");
+    }
+    
+    const farmerProducts = await prisma.products.findMany({
+      where: { farmerId: farmer.id }
+    }); 
+
+    const transaction = await prisma.transactions.findUnique({
+      where: { id: Number(data.transactionId),
+      productId: farmerProducts.id
+       },
+      include: { product: true }
+    });
+
+    if (!transaction) {
+    throw new Error("Transaksi tidak ditemukan");
+  }
+
+  if (transaction.product.farmerId !== farmer.id) {
+    throw new Error("Anda tidak berhak mengubah status transaksi ini");
+  } 
+
+ const allowedStatus = ["PENDING", "PROCESSING", "COMPLETED", "CANCELED"];
+  if (!allowedStatus.includes(data.newStatus)) {
+    throw new Error("Status tidak valid");
+  }
+
+  const updateTransaction = await prisma.transactions.update({
+    where: { id: Number(data.transactionId) },
+    data: { status: newStatus,
+    updatedAt: new Date() },
+    include: { product: true, buyer: true },
+  });
+
+  return updateTransaction;
+}
+
+
+
+
+
   // const createdTransactions = [];
 
   // for (const item of items) {
@@ -160,7 +236,9 @@ async function createManyTransactions(userId, data) {
 module.exports = {
   createOneTransaction,
   getHistoryTransaction,
-  createManyTransactions
+  createManyTransactions,
+  uploadPaymentProof,
+  editPaymentStatus
 };
 
   

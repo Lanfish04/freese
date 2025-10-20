@@ -57,8 +57,51 @@ async function createSelectedTransactions(req, res) {
   }
 }
 
+async function uploadPaymentProof(req, res) {
+  try {
+    
+    const transactionId = Number(req.params.transactionId);
+    const userId = req.user.id;
+    const paymentProofUrl = req.body.paymentProof;
+    
+    if (!req.user || req.user.role !== "BUYER") {
+      return res.status(403).json({ error: "Hanya buyer yang bisa mengunggah bukti pembayaran" });
+    }
+
+    const transaction = await transactionsService.uploadPaymentProof(userId, transactionId, paymentProofUrl);
+
+    res.status(200).json({
+      message: "Bukti pembayaran berhasil diunggah",
+      transaction
+    });
+  
+}catch (error) {
+    console.error("Error uploading payment proof:", error);
+    res.status(400).json({ error: error.message });
+  }
+}
+
+
+async function editPaymentStatus(req, res) {
+  try {
+    if (!req.user || req.user.role !== "FARMER") {
+      return res.status(403).json({ error: "Hanya farmer yang bisa mengubah status pembayaran" });
+    }
+    const transaction = await transactionsService.editPaymentStatus(req.user.id, req.body);
+    res.status(200).json({
+      message: "Status pembayaran berhasil diperbarui",
+      transaction
+    });
+  } catch (error) {
+    console.error("Error updating payment status:", error);
+    res.status(400).json({ error: error.message });
+  }
+}
+
 module.exports = {
     createOneTransaction,
     historyTransaction,
-    createSelectedTransactions
+    createSelectedTransactions,
+    uploadPaymentProof,
+    editPaymentStatus
 };

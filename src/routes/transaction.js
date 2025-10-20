@@ -9,6 +9,12 @@ router.route("/product")
 router.route("/product/cart")
     .post(middleware.accessValidate, transactionCon.createSelectedTransactions);
 
+router.route("/payment/status")
+    .patch(middleware.accessValidate, transactionCon.editPaymentStatus);
+
+router.route("/payment/proof/:transactionId")
+    .patch(middleware.accessValidate, transactionCon.uploadPaymentProof);
+
 router.route("/history")    
     .get(middleware.accessValidate, transactionCon.historyTransaction);
 

@@ -100,7 +100,7 @@ model Transactions {
   totalPrice Float
   shipAddress String?
   status TransactionStatus @default(PENDING)
-  paymentMethod   String  
+  paymentMethod   String   
   paymentProof    String?  
   paymentStatus   PaymentStatus @default(UNPAID)
   createdAt DateTime @default(now())

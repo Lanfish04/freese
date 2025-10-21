@@ -12,10 +12,13 @@ router.route("/product/cart")
 router.route("/payment/status")
     .patch(middleware.accessValidate, transactionCon.editPaymentStatus);
 
-router.route("/payment/proof/:transactionId")
-    .patch(middleware.accessValidate, transactionCon.uploadPaymentProof);
+router.route("/payment")
+    .get(transactionCon.uploadPaymentProof);
 
 router.route("/history")    
     .get(middleware.accessValidate, transactionCon.historyTransaction);
+
+router.route("/product/pay/:transactionsId")    
+    .post(middleware.accessValidate, transactionCon.payClick);
 
 module.exports = router;

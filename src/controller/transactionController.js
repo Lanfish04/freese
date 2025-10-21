@@ -3,13 +3,15 @@ const transactionsService = require("../service/transactionsService");
 
 async function historyTransaction(req, res) {
     try {
-        if (!req.user || !req.user.id) {
+      const status = req.query.status;  
+      
+      if (!req.user || !req.user.id) {
             return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
         }
         if (req.user.role !== "BUYER") {
             return res.status(403).json({ error: "Hanya buyer yang bisa mengakses riwayat transaksi" });
         }
-        const transactions = await transactionsService.getHistoryTransaction(req.user.id);
+        const transactions = await transactionsService.getHistoryTransaction(req.user.id, status);
         res.status(200).json({
             message: "Riwayat transaksi berhasil diambil",
             transactions});
@@ -59,21 +61,14 @@ async function createSelectedTransactions(req, res) {
 
 async function uploadPaymentProof(req, res) {
   try {
-    
-    const transactionId = Number(req.params.transactionId);
-    const userId = req.user.id;
-    const paymentProofUrl = req.body.paymentProof;
-    
-    if (!req.user || req.user.role !== "BUYER") {
-      return res.status(403).json({ error: "Hanya buyer yang bisa mengunggah bukti pembayaran" });
-    }
+    const { order_id, status_code, transaction_status } = req.query
+    console.log(order_id);
+    console.log(status_code);
+    console.log(transaction_status);
 
-    const transaction = await transactionsService.uploadPaymentProof(userId, transactionId, paymentProofUrl);
+    await transactionsService.uploadPaymentProof(order_id, status_code, transaction_status);
 
-    res.status(200).json({
-      message: "Bukti pembayaran berhasil diunggah",
-      transaction
-    });
+    res.json({ message: "Bukti pembayaran berhasil diunggah dan status transaksi diperbarui" });
   
 }catch (error) {
     console.error("Error uploading payment proof:", error);
@@ -98,10 +93,29 @@ async function editPaymentStatus(req, res) {
   }
 }
 
+async function payClick(req, res) {
+  try {
+    const transactionsId = req.params.transactionsId;
+    if (!req.user || req.user.role !== "BUYER") {
+      return res.status(403).json({ error: "Hanya buyer yang bisa melakukan pembayaran" });
+    }
+    const paymentUrl = await transactionsService.payClick(transactionsId);
+    res.status(200).json({
+      message: "Pembayaran berhasil diproses",
+      paymentUrl
+    });
+  } catch (error) {
+    console.error("Error processing payment:", error);
+    res.status(400).json({ error: error.message });
+  } 
+}
+
+
 module.exports = {
     createOneTransaction,
     historyTransaction,
     createSelectedTransactions,
     uploadPaymentProof,
-    editPaymentStatus
+    editPaymentStatus,
+    payClick
 };

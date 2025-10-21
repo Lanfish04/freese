@@ -135,7 +135,7 @@ async function clearCart(req, res) {
 async function itemSelected(req, res) {
  try{
   const userId = req.user.id;
-  const isSelected = Boolean(req.body);
+  const {isSelected} = req.body;
   const cartId = Number(req.params.id);
   if (!req.user || !userId) {
     return res.status(401).json({ message: "User tidak ditemukan atau belum login" });

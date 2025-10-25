@@ -99,9 +99,7 @@ model Transactions {
   quantity Int
   totalPrice Float
   shipAddress String?
-  status TransactionStatus @default(PENDING)
-  paymentMethod   String   
-  paymentProof    String?  
+  status TransactionStatus @default(PENDING)  
   paymentStatus   PaymentStatus @default(UNPAID)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

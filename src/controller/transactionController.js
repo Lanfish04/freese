@@ -8,13 +8,24 @@ async function historyTransaction(req, res) {
       if (!req.user || !req.user.id) {
             return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
         }
-        if (req.user.role !== "BUYER") {
-            return res.status(403).json({ error: "Hanya buyer yang bisa mengakses riwayat transaksi" });
+        if (req.user.role === "BUYER") {
+            const buyerTransactions = await transactionsService.getHistoryBuyerTransaction(req.user.id, status);
+            res.status(200).json({
+            message: "Riwayat transaksi berhasil diambil",
+            buyerTransactions});
         }
-        const transactions = await transactionsService.getHistoryTransaction(req.user.id, status);
+        
+        if (req.user.role === "FARMER") {
+        const farmerTransactions = await transactionsService.getHistoryFarmerTransaction(req.user.id, status);
         res.status(200).json({
             message: "Riwayat transaksi berhasil diambil",
-            transactions});
+            farmerTransactions
+        });
+      }
+
+      else{
+        res.status(403).json({ error: "Forbidden" });
+      }
     } catch (error) {
         console.error("Error fetching transaction history:", error);
         res.status(500).json({ error: "Internal server error" });
@@ -59,14 +70,11 @@ async function createSelectedTransactions(req, res) {
   }
 }
 
-async function uploadPaymentProof(req, res) {
+async function updateStatusTransaction(req, res) {
   try {
     const { order_id, status_code, transaction_status } = req.query
-    console.log(order_id);
-    console.log(status_code);
-    console.log(transaction_status);
 
-    await transactionsService.uploadPaymentProof(order_id, status_code, transaction_status);
+    await transactionsService.getRefreshTransaction(order_id, status_code, transaction_status);
 
     res.json({ message: "Bukti pembayaran berhasil diunggah dan status transaksi diperbarui" });
   
@@ -80,7 +88,7 @@ async function uploadPaymentProof(req, res) {
 async function editPaymentStatus(req, res) {
   try {
     if (!req.user || req.user.role !== "FARMER") {
-      return res.status(403).json({ error: "Hanya farmer yang bisa mengubah status pembayaran" });
+      return res.status(403).json({ error: "Hanya farmer yang bisa mengubah status transaksi" });
     }
     const transaction = await transactionsService.editPaymentStatus(req.user.id, req.body);
     res.status(200).json({
@@ -115,7 +123,7 @@ module.exports = {
     createOneTransaction,
     historyTransaction,
     createSelectedTransactions,
-    uploadPaymentProof,
+    updateStatusTransaction,
     editPaymentStatus,
     payClick
 };

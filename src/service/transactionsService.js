@@ -4,7 +4,7 @@ const axios = require("axios");
 const dotenv = require('dotenv');
 
 
-async function getHistoryTransaction(userId, status) {
+async function getHistoryBuyerTransaction(userId, status) {
     const buyer = await prisma.buyers.findUnique({
         where: { userId: userId }
     });
@@ -17,6 +17,20 @@ async function getHistoryTransaction(userId, status) {
         include: { product: true }
     });
 }
+
+async function getHistoryFarmerTransaction(userId, status){
+  const farmer = await prisma.farmers.findUnique({
+    where : {userId: userId}
+  });
+  if (!farmer){
+    throw new Error("Farmer tidak ditemukan");
+  }
+  return prisma.transactions.findMany({
+    where: { product: { farmerId: farmer.id },
+      paymentStatus: status },
+    include: { product: true, buyer: true }
+  });
+} 
 
 
 async function createOneTransaction(userId, data) {
@@ -121,7 +135,7 @@ async function createManyTransactions(userId, data) {
   return transactionsData;
 }
 
-async function uploadPaymentProof(order_id, status_code, transaction_status) {
+async function getRefreshTransaction(order_id, status_code, transaction_status) {
 const order = await prisma.transactions.findUnique({
   where: { id: Number(order_id) }
 });
@@ -195,15 +209,18 @@ async function editPaymentStatus(userId, data) {
   if (transaction.product.farmerId !== farmer.id) {
     throw new Error("Anda tidak berhak mengubah status transaksi ini");
   } 
+  if (transaction.paymentStatus !== "PAID") {
+    throw new Error("Pembayaran belum selesai. Tidak dapat mengubah status transaksi.");
+  }
 
- const allowedStatus = ["PENDING", "PROCESSING", "COMPLETED", "CANCELED"];
-  if (!allowedStatus.includes(data.newStatus)) {
+  // Mencegah pengaturan status pembayaran melalui endpoint ini
+  if (data.newStatus === "PAID") {
     throw new Error("Status tidak valid");
   }
 
   const updateTransaction = await prisma.transactions.update({
     where: { id: Number(data.transactionId) },
-    data: { status: newStatus,
+    data: { status: data.newStatus,
     updatedAt: new Date() },
     include: { product: true, buyer: true },
   });
@@ -337,9 +354,10 @@ async function payClick(transactionsId) {
 
 module.exports = {
   createOneTransaction,
-  getHistoryTransaction,
+  getHistoryBuyerTransaction,
+  getHistoryFarmerTransaction,
   createManyTransactions,
-  uploadPaymentProof,
+  getRefreshTransaction,
   editStatusTransaction,
   editPaymentStatus,
   deleteTransactions,

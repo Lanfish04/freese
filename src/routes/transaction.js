@@ -13,7 +13,7 @@ router.route("/payment/status")
     .patch(middleware.accessValidate, transactionCon.editPaymentStatus);
 
 router.route("/payment")
-    .get(transactionCon.uploadPaymentProof);
+    .get(transactionCon.updateStatusTransaction);
 
 router.route("/history")    
     .get(middleware.accessValidate, transactionCon.historyTransaction);

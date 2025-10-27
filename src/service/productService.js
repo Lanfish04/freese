@@ -18,7 +18,16 @@ async function getProducts() {
 
 async function getProductsByFarmerId(farmerId) {
     return prisma.products.findMany({
-        where: { farmerId: Number(farmerId) }
+        where: { farmerId: Number(farmerId) },
+        include :{
+        farmer:{
+            select:{
+                farmName: true,
+                address: true,
+                productsType: true
+                }        
+            }
+        }
     });
 }
 
@@ -37,8 +46,20 @@ return prisma.products.findUnique({
     })  
 }
 
-async function createProduct(data) {
-    const newProduct = await prisma.products.create({
+async function createProduct(userId, data) {
+    const farmer = await prisma.farmers.findUnique({
+        where: { userId: userId }
+    });
+
+    if (!farmer) {
+        throw new Error("Farmer tidak ditemukan");
+    }
+
+   if (!data.name || !data.price || !data.stock) {
+        throw new Error("Tidak Boleh Kosong ");
+    }
+
+    return prisma.products.create({
       data: {
         name: data.name,
         price: Number(data.price),
@@ -47,16 +68,31 @@ async function createProduct(data) {
         image: data.image,
         description: data.description,
         category: data.category,
-        farmerId: data.farmerId,
+        farmerId: farmer.id,
       },
     });
-    return newProduct;
 }
 
-async function editProduct(id) {
-    return getProduct = await prisma.products.findUnique({
+async function editProduct(userId, id) {
+    const farmer = await prisma.farmers.findUnique({
+        where: { userId: userId }
+    });
+    if (!farmer) {
+        throw new Error("Farmer tidak ditemukan");
+    }
+    const product = await prisma.products.findUnique({
       where: { id: Number(id) },
     });
+
+    if (!product) {
+        throw new Error("Produk tidak ditemukan");
+    }
+
+    if (product.farmerId !== farmer.id) {
+        throw new Error("Forbidden");
+    }
+
+    return product;
     
 }
 

@@ -33,6 +33,9 @@ async function getMyProducts(req, res) {
             return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
         }
         
+        if (req.user.role !== 'FARMER') {
+          return res.status(403).json({ error: "Hanya petani yang dapat mengakses produk mereka" });
+        }
         const farmer = await prisma.farmers.findFirst({
             where: { userId: req.user.id },
         });
@@ -53,41 +56,19 @@ async function getMyProducts(req, res) {
 
 async function createProduct(req, res) {
   try {
-    const { name, price, stock, unit, image, description, category } = req.body;
     if (!req.user || !req.user.id) {
       return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
     }
-   
-    if (!name || !price || !stock) {
-      return res.status(400).json({ error: "Nama, Harga dan Stock tidak boleh kosong" });
+    if (req.user.role !== 'FARMER') {
+      return res.status(403).json({ error: "Hanya petani yang dapat membuat produk" });
     }
-
-    const farmer = await prisma.farmers.findFirst({
-      where: { userId: req.user.id },
-    });
-    console.log(farmer);
-
-    if (!farmer) {
-      return res.status(404).json({ error: "Petani tidak ditemukan, pastikan akun anda terdaftar sebagai petani" });
-    }
-
-    const newProduct = await product.createProduct({
-      name: name,
-      price: price,
-      stock: stock,
-      image: image,
-      unit: unit,
-      description: description,
-      category: category,
-      farmerId: farmer.id,
-    });
-
+    const newProduct = await product.createProduct(req.user.id, req.body);
     res.status(201).json({
       message: "Produk berhasil dibuat",
       newProduct });
-  } catch (error) {
+  }catch (error) {
     console.error("Error creating product:", error);
-    res.status(500).json({ error: "Failed to create product" });
+    res.status(400).json({ error: error.message });
   }
 }
 
@@ -97,34 +78,18 @@ async function showEditProduct(req, res ) {
       if (!req.user || !req.user.id) {
         return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
     }
-
+    if (req.user.role !== 'FARMER') {
+      return res.status(403).json({ error: "Hanya petani yang dapat mengedit produk" });
+    }
     const productById = await product.editProduct(id);
-    if (!productById) {
-        return res.status(404).json({ error: "Produk tidak ditemukan" });
-    }
-
-     const farmer = await prisma.farmers.findFirst({
-      where: { userId: req.user.id },
-    });
-
-    if (!farmer) {
-      return res.status(403).json({ error: "Anda bukan petani" });
-    }
-
-    // Cek kepemilikan produk
-    if (productById.farmerId !== farmer.id) {
-      return res.status(403).json({ error: "Forbidden: Milik orang lain" });
-    }
-
-    
-
-
-    res.status(200).json(productById);
+    res.status(200).json({
+      message: "Berhasil menampilkan produk untuk di edit",
+      productById});
     return productById;
     }catch (error) {
-        console.error("Error fetching product by ID:", error);
-        res.status(500).json({ error: "Internal server error" });
-    }
+    console.error("Error fetching product:", error);
+    res.status(400).json({ error: error.message });
+  }
 }
 
 async function updateProduct(req, res) {

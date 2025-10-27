@@ -1,5 +1,4 @@
 const prisma = require("../config/prisma");
-const fetch = require("node-fetch");
 const axios = require("axios");
 const dotenv = require('dotenv');
 
@@ -27,7 +26,7 @@ async function getHistoryFarmerTransaction(userId, status){
   }
   return prisma.transactions.findMany({
     where: { product: { farmerId: farmer.id },
-      paymentStatus: status },
+      paymentStatus: "PAID" },
     include: { product: true, buyer: true }
   });
 } 
@@ -121,7 +120,6 @@ async function createManyTransactions(userId, data) {
       totalPrice,
       status: "PENDING",
       shipAddress: data.shipAddress || buyer.address,
-      paymentMethod: data.paymentMethod || "TRANSFER_BANK",
       createdAt: new Date(),
     });
   }
@@ -182,7 +180,7 @@ return prisma.transactions.update({
 // });
 } 
 
-async function editPaymentStatus(userId, data) {
+async function editStatusTransactionFarmer(userId, data) {
   const farmer = await prisma.farmers.findUnique({
       where: { userId: userId }
     });
@@ -214,14 +212,13 @@ async function editPaymentStatus(userId, data) {
   }
 
   // Mencegah pengaturan status pembayaran melalui endpoint ini
-  if (data.newStatus === "PAID") {
+  if (data.status === "PAID") {
     throw new Error("Status tidak valid");
   }
 
   const updateTransaction = await prisma.transactions.update({
     where: { id: Number(data.transactionId) },
-    data: { status: data.newStatus,
-    updatedAt: new Date() },
+    data: { status: data.status},
     include: { product: true, buyer: true },
   });
 
@@ -318,40 +315,6 @@ async function payClick(transactionsId) {
   return result.redirect_url;
 }
 
-
-
-  // const createdTransactions = [];
-
-  // for (const item of items) {
-  //   if (item.product.stock < item.quantity) {
-  //     throw new Error(`Stok produk ${item.product.name} tidak mencukupi`);
-  //   }
-
-  //   const totalPrice = item.product.price * item.quantity;
-  //   await prisma.products.update({
-  //     where: { id: item.product.id },
-  //     data: { stock: item.product.stock - item.quantity },
-  //   });
-
-  //   const transaction = await prisma.transactions.create({
-  //     data: {
-  //       buyerId: buyer.id,
-  //       productId: item.product.id,
-  //       totalPrice: totalPrice,
-  //       quantity: item.quantity,
-  //       shipAddress: transactionsData.shipAddress || buyer.address,
-  //       status: "PENDING",
-  //       paymentMethod: transactionsData.paymentMethod || "TRANSFER_BANK"
-  //     },
-  //     include: { product: true, buyer: true }
-  //   });
-  //   createdTransactions.push(transaction);
-  // } 
-  // await prisma.cart.deleteMany({
-  //   where: { buyerId: buyer.id }
-  // });
-  // return createdTransactions;
-
 module.exports = {
   createOneTransaction,
   getHistoryBuyerTransaction,
@@ -359,7 +322,8 @@ module.exports = {
   createManyTransactions,
   getRefreshTransaction,
   editStatusTransaction,
-  editPaymentStatus,
+  editStatusTransactionFarmer,
+  // editStatusTransactionBuyer,
   deleteTransactions,
   payClick
 };

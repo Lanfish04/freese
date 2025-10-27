@@ -9,7 +9,7 @@ router.route("/product")
 router.route("/product/cart")
     .post(middleware.accessValidate, transactionCon.createSelectedTransactions);
 
-router.route("/payment/status")
+router.route("/edit/status")
     .patch(middleware.accessValidate, transactionCon.editPaymentStatus);
 
 router.route("/payment")

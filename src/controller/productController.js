@@ -194,6 +194,21 @@ async function deleteProduct(req, res) {
     }
   
 }
+
+async function searchProduct(req, res) {
+    try {
+        const { query, category } = req.query;
+        const products = await product.searchProduct(query, category);
+        res.status(200).json({
+          message: "Hasil pencarian produk",
+          products});
+    } catch (error) {
+        console.error("Error searching products:", error);
+        res.status(500).json({ error: "Internal server error" });
+    } 
+}
+
+
 module.exports = { 
     getProducts,
     getMyProducts,
@@ -201,5 +216,6 @@ module.exports = {
     createProduct,
     showEditProduct,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    searchProduct
 };

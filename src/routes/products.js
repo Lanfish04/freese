@@ -22,5 +22,8 @@ router.route("/edit/:id")
 router.route("/delete/:id")
 	.delete(middleware.accessValidate, productsCon.deleteProduct);
 
+router.route("/search")
+	.get(productsCon.searchProduct);
+
 
 module.exports=router;

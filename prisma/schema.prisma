@@ -41,6 +41,7 @@ model Buyers {
   businessName String?
   businessType String?
   address String?
+  location String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
@@ -55,6 +56,7 @@ model Farmers {
   farmName String?
   address String?
   productsType String?
+  location String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
@@ -109,8 +111,7 @@ model Transactions {
 } 
 
 enum TransactionStatus {
-  PENDING    
-  PAID       
+  PENDING       
   PROCESSING 
   COMPLETED  
   CANCELED   

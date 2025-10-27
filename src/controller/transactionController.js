@@ -76,7 +76,7 @@ async function updateStatusTransaction(req, res) {
 
     await transactionsService.getRefreshTransaction(order_id, status_code, transaction_status);
 
-    res.json({ message: "Bukti pembayaran berhasil diunggah dan status transaksi diperbarui" });
+    res.json({ message: "Status transaksi diperbarui" });
   
 }catch (error) {
     console.error("Error uploading payment proof:", error);
@@ -92,7 +92,7 @@ async function editPaymentStatus(req, res) {
     }
     const transaction = await transactionsService.editPaymentStatus(req.user.id, req.body);
     res.status(200).json({
-      message: "Status pembayaran berhasil diperbarui",
+      message: "Status berhasil diperbarui",
       transaction
     });
   } catch (error) {

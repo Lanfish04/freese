@@ -81,6 +81,38 @@ async function deleteProduct(farmerId) {
     });
   
 }
+
+
+async function searchProduct(keyword, category) {
+    return prisma.products.findMany({
+        where: {
+            name: {
+                contains: keyword ? keyword : {},
+                mode: 'insensitive',
+            },
+            AND: {
+                category: {
+                    equals: category && category !== 'all' ? { category: category } : undefined,
+                },
+            },
+        },
+        include: {
+            farmer: {
+                select: {
+                    farmName: true,
+                    address: true,
+                    productsType: true,
+                    location: true
+                },
+            },
+        },
+        orderBy: {
+            createdAt: 'desc',
+        },
+        take: 20,
+    });
+}
+
 module.exports = { 
     getProducts,
     getProductById,
@@ -88,5 +120,6 @@ module.exports = {
     createProduct,
     editProduct,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    searchProduct
 };

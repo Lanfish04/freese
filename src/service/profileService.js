@@ -79,7 +79,8 @@ async function updateMyDataProfile(id, data) {
                     update: {
                         ...(data.farmName && { farmName: data.farmName }),
                         ...(data.address && { address: data.address }),
-                        ...(data.productsType && { productsType: data.productsType })
+                        ...(data.productsType && { productsType: data.productsType }),
+                        ...(data.location && { location: data.location })
                     }
                 }
                 : undefined
@@ -101,7 +102,8 @@ if (user.role === "BUYER") {
                     update: {
                         ...(data.businessName && { businessName: data.businessName }),
                         ...(data.businessType && { businessType: data.businessType }),
-                        ...(data.address && { address: data.address })
+                        ...(data.address && { address: data.address }),
+                        ...(data.location && { location: data.location })
                     }
                 }
                 : undefined

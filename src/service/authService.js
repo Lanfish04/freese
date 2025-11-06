@@ -1,10 +1,12 @@
 const prisma = require("../config/prisma");
 const bcrypt = require("bcrypt");
 
-async function findUser(email) {
-    return prisma.users.findUnique({
+async function validateUser(email) {
+    const user = prisma.users.findUnique({
         where: { email }
     });
+    return user;    
+
 }
 async function addUser(data) {
     const password = data.password;
@@ -45,6 +47,6 @@ async function addUser(data) {
 }
 
 module.exports = {
-    findUser,
+    validateUser,
     addUser
 };

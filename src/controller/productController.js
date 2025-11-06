@@ -15,7 +15,7 @@ async function getProducts(req, res) {
 
 async function detailProduct(req, res) {
     try {
-        const { id } = req.params;
+      const {id} = req.params;
         const productById = await product.getProductById(id);
         if (!productById) {
             return res.status(404).json({ error: "Product not found" });
@@ -162,8 +162,9 @@ async function deleteProduct(req, res) {
 
 async function searchProduct(req, res) {
     try {
-        const { query, category } = req.query;
-        const products = await product.searchProduct(query, category);
+        const  keyword  = req.query.keyword || '';
+        // const  category  = req.query.category || '';
+        const products = await product.searchProduct(keyword);
         res.status(200).json({
           message: "Hasil pencarian produk",
           products});

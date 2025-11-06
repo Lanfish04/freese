@@ -8,7 +8,7 @@ const generateToken = (user) => {
     const token = jsonwebtoken.sign(
         { id: user.id, role: user.role }, // payload
         JWT_SECRET,                      // secret key
-        { expiresIn: "1d" }              // token expiration
+        { expiresIn: "7d" }              // token expiration
     );
     return token;
 }

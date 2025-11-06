@@ -32,9 +32,9 @@ async function getProductsByFarmerId(farmerId) {
 }
 
 async function getProductById(id) {
-return prisma.products.findUnique({
-    where:{id : Number(id)},
-    include :{ 
+    const product = await prisma.products.findUnique({
+        where:{ id : Number(id)},
+        include :{ 
         farmer:{
             select:{
                 farmName: true,
@@ -43,7 +43,11 @@ return prisma.products.findUnique({
                 }        
             }
         }
-    })  
+    });
+    if (!product) {
+        throw new Error("Produk tidak ditemukan");
+    }
+return product;
 }
 
 async function createProduct(userId, data) {
@@ -119,34 +123,56 @@ async function deleteProduct(farmerId) {
 }
 
 
-async function searchProduct(keyword, category) {
-    return prisma.products.findMany({
-        where: {
-            name: {
-                contains: keyword ? keyword : {},
-                mode: 'insensitive',
-            },
-            AND: {
-                category: {
-                    equals: category && category !== 'all' ? { category: category } : undefined,
-                },
-            },
-        },
-        include: {
-            farmer: {
-                select: {
-                    farmName: true,
-                    address: true,
-                    productsType: true,
-                    location: true
-                },
-            },
-        },
-        orderBy: {
-            createdAt: 'desc',
-        },
-        take: 20,
-    });
+async function searchProduct(keyword) {
+const searchProducts = await prisma.products.findMany({
+  where: {
+    body: {
+      search : keyword,
+    },
+  },
+  include: {
+    farmer: {
+      select: {
+        farmName: true,
+        address: true,
+        productsType: true,
+      },
+    },
+  },
+  orderBy: {
+    createdAt: 'desc',
+  },
+  take: 20,
+});
+
+
+  //   const searchProducts = prisma.products.findMany({
+//   where: {
+//     AND: [
+//       keyword ? { name: { contains: keyword, mode: 'insensitive' } } : {},
+//       category && category !== 'all' ? { category: { equals: category } } : {},
+//     ],
+//   },
+//   include: {
+//     farmer: {
+//       select: {
+//         farmName: true,
+//         address: true,
+//         productsType: true,
+        
+//       },
+//     },
+//   },
+//   orderBy: {
+//     createdAt: 'desc',
+//   },
+//   take: 20,
+// });
+
+// if (!searchProducts) {
+//     throw new Error("Produk tidak ditemukan");
+// }
+return searchProducts;
 }
 
 module.exports = { 

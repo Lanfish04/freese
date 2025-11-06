@@ -3,22 +3,24 @@ const authService = require("../service/authService");
 const tokenUtils = require("../utils/jwt");
 
 async function login(req, res) {
-    try {
+    try { 
         const { email, password } = req.body;
-        
-        const user = await authService.findUser(email);  
-        const accessToken = tokenUtils.generateToken(user);
-        
+        const user = await authService.validateUser(email);
 
-        
-        if (password.length < 8) {
-        res.status(400).json({ message: "Password harus memiliki minimal 8 karakter" });
-         }
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-         if (!user.email || !user.password || !isPasswordValid) {
-         return res.status(401).json({ message: "Email atau password salah" });
+        if (!user) {
+            return res.status(400).json({ message: "Email atau password salah" });
         }
-    return res.status(200).json({
+
+        if (!password || password.length < 8) {
+            res.status(400).json({ message: "Password harus memiliki minimal 8 karakter" });
+                 }
+        
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!user || !isPasswordValid) {
+        return res.status(400).json({ message: "Email atau password salah" });
+        }
+        const accessToken = tokenUtils.generateToken(user);
+      return res.status(200).json({
       message: "Login berhasil",
       user: {
         id: user.id,

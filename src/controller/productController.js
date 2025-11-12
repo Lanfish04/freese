@@ -150,7 +150,6 @@ async function updateProduct(req, res) {
     blobStream.end(file.buffer);
   });
 
-  // Buat URL publik
       imageUrl = `https://storage.googleapis.com/${bucket.name}/${newFileName}`;
 
       // Hapus file lama dari bucket (jika ada)
@@ -165,7 +164,6 @@ async function updateProduct(req, res) {
       }
     }
 
-    // Update data produk di database
     const updatedProduct = await product.updateProduct(req.user.id, id, {
       ...req.body,
       image: imageUrl,

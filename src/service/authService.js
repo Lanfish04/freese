@@ -11,12 +11,17 @@ async function validateUser(email) {
 async function addUser(data) {
     const password = data.password;
     const hashedPassword = await bcrypt.hash(password, 10);
+    const photoUrl = `https://storage.googleapis.com/user-photos/profileDefault.png`;
+    if (!data.photo) {
+        data.photo = photoUrl;
+    }
     const newUser = await prisma.users.create({
         data: {
             email: data.email,
             password: hashedPassword,
             full_name: data.full_name,
             phone: data.phone,
+            photo: data.photo,
             role: data.role
         },
     });

@@ -40,15 +40,15 @@ async function login(req, res) {
 async function register(req, res) { 
     
     try {
-        const { email, password, full_name, phone, role } = req.body;
-        const existingUser = await authService.findUser(email);
+        const { email, password, full_name, phone, role, photo } = req.body;
+        const existingUser = await authService.validateUser(email);
         if (existingUser) {
             return res.status(400).json({ message: "Email sudah terdaftar" });
         }
         if (password.length < 8) {
             return res.status(400).json({ message: "Password harus memiliki minimal 8 karakter" });
         }
-        const newUser = await authService.addUser({ email, password, full_name, phone, role });
+        const newUser = await authService.addUser({ email, password, full_name, phone, photo, role });
         return res.status(201).json({
             message: "Registrasi berhasil",
             user: {

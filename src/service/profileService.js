@@ -33,6 +33,7 @@ async function getProfileById(id) {
             full_name: true,
             phone: true,
             email: true,
+            photo: true,
             role: true,
                 Buyers: {
                     select: {
@@ -61,20 +62,23 @@ async function getMyAkunProfile(id) {
 }
 
 
-async function updateMyDataProfile(id, data) {
+async function updateMyDataProfile(userId, data) {
     const user = await prisma.users.findUnique({
-        where: { id: Number(id) }
+        where: { id: Number(userId) }
     });
 
-    if (!user) return null;
+    if (!user){
+        throw new Error("User tidak ditemukan");
+    }
 
     if (user.role === "FARMER") {
     return prisma.users.update({
-        where: { id: Number(id) },
+        where: { id: Number(userId) },
         data: {
             ...(data.full_name && { full_name: data.full_name }),
             ...(data.phone && { phone: data.phone }),
-            Farmers: (data.farmName || data.address || data.productsType)
+            ...(data.photo && { photo: data.photo }),
+            Farmers: (data.farmName || data.address || data.productsType || data.location)
                 ? {
                     update: {
                         ...(data.farmName && { farmName: data.farmName }),
@@ -93,11 +97,12 @@ async function updateMyDataProfile(id, data) {
 
 if (user.role === "BUYER") {
     return prisma.users.update({
-        where: { id: Number(id) },
+        where: { id: Number(userId) },
         data: {
             ...(data.full_name && { full_name: data.full_name }),
             ...(data.phone && { phone: data.phone }),
-            Buyers: (data.businessName || data.businessType || data.address)
+            ...(data.photo && { photo: data.photo }),
+            Buyers: (data.businessName || data.businessType || data.address || data.location)
                 ? {
                     update: {
                         ...(data.businessName && { businessName: data.businessName }),

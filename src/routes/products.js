@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 const productsCon = require("../controller/productController");
 const middleware = require("../middleware/middleware");
+const upload = require("../middleware/upload");
 
 
 router.route("/")
 	.get(productsCon.getProducts)
-	.post(middleware.accessValidate, productsCon.createProduct);
+	.post(upload.single('image'), middleware.accessValidate, productsCon.createProduct);
 
 router.route("/myproducts")
     .get(middleware.accessValidate, productsCon.getMyProducts);
@@ -17,7 +18,7 @@ router.route("/:id")
 
 router.route("/edit/:id")
 	.get(middleware.accessValidate, productsCon.showEditProduct)
-	.put(middleware.accessValidate, productsCon.updateProduct);
+	.put(upload.single('image'), middleware.accessValidate, productsCon.updateProduct);
 
 router.route("/delete/:id")
 	.delete(middleware.accessValidate, productsCon.deleteProduct);

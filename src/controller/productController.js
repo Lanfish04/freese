@@ -1,6 +1,8 @@
 const { parse } = require('dotenv');
 const prisma = require('../config/prisma');
+const bucket = require('../config/storage');
 const product = require('../service/productService')
+const path = require('path');
 
 async function getProducts(req, res) {
     try {
@@ -62,7 +64,29 @@ async function createProduct(req, res) {
     if (req.user.role !== 'FARMER') {
       return res.status(403).json({ error: "Hanya petani yang dapat membuat produk" });
     }
-    const newProduct = await product.createProduct(req.user.id, req.body);
+
+    let imageUrl = null;
+    if (req.file) {
+      const blob = bucket.file(`products/${req.user.id}/${Date.now()}-${path.basename(req.file.originalname)}`);
+      const blobStream = blob.createWriteStream({
+        resumable: false,
+        contentType: req.file.mimetype,
+      });
+
+      await new Promise((resolve, reject) => {
+        blobStream.on('error', reject);
+        blobStream.on('finish', resolve);
+        blobStream.end(req.file.buffer);
+      });
+
+      
+      imageUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
+    }
+
+    const newProduct = await product.createProduct(req.user.id, {
+      ...req.body,
+      image: imageUrl, 
+    });
     res.status(201).json({
       message: "Produk berhasil dibuat",
       newProduct });
@@ -81,7 +105,7 @@ async function showEditProduct(req, res ) {
     if (req.user.role !== 'FARMER') {
       return res.status(403).json({ error: "Hanya petani yang dapat mengedit produk" });
     }
-    const productById = await product.editProduct(id);
+    const productById = await product.editProduct(req.user.id, id);
     res.status(200).json({
       message: "Berhasil menampilkan produk untuk di edit",
       productById});
@@ -95,10 +119,8 @@ async function showEditProduct(req, res ) {
 async function updateProduct(req, res) {
     try {
     const { id } = req.params;
-    const data = req.body;
-    const farmer = await prisma.farmers.findFirst({
-      where: { userId: req.user.id },
-    });
+
+    const file = req.file;
     
      if (!req.user || !req.user.id) {
       return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
@@ -107,20 +129,53 @@ async function updateProduct(req, res) {
     if (req.user.role !== 'FARMER') {
       return res.status(403).json({ error: "Hanya petani yang dapat mengedit produk" });
     }
+    const existingProduct = await product.getProductById(id);
+    if (!existingProduct) {
+      return res.status(404).json({ error: "Produk tidak ditemukan" });
+    }
+    let imageUrl = existingProduct.image; // default: pakai yang lama
 
-    if (!farmer) {
-      return res.status(404).json({ error: "Petani tidak ditemukan, pastikan akun anda terdaftar sebagai petani" });
+    // Jika ada upload file baru
+    if (file) {
+      const newFileName = `products/${req.user.id}/${Date.now()}-${file.originalname}`;
+      const blob = bucket.file(newFileName);
+      const blobStream = blob.createWriteStream({
+        resumable: false,
+        contentType: file.mimetype,
+      });
+
+      await new Promise((resolve, reject) => {
+    blobStream.on('finish', resolve);
+    blobStream.on('error', reject);
+    blobStream.end(file.buffer);
+  });
+
+  // Buat URL publik
+      imageUrl = `https://storage.googleapis.com/${bucket.name}/${newFileName}`;
+
+      // Hapus file lama dari bucket (jika ada)
+      if (existingProduct.image) {
+        try {
+          const oldFileName = existingProduct.image.split(`${bucket.name}/`)[1];
+          await bucket.file(oldFileName).delete();
+          console.log(`File lama dihapus: ${oldFileName}`);
+        } catch (err) {
+          console.warn("Gagal hapus file lama:", err.message);
+        }
+      }
     }
 
-    if (id == null || isNaN(Number(id))) {
-      return res.status(400).json({ error: "ID produk tidak valid" });
-    }
+    // Update data produk di database
+    const updatedProduct = await product.updateProduct(req.user.id, id, {
+      ...req.body,
+      image: imageUrl,
+    });
 
-    const updateProduct = await product.updateProduct(id, data, farmer.id);
-    res.status(200).json(
-      {
-        message: "Produk berhasil diupdate",
-        updateProduct});
+    res.status(200).json({
+      message: "Produk berhasil diupdate",
+      updatedProduct,
+    });
+
     }catch (error) {
         console.error("Error updating product:", error);
         res.status(500).json({ error: "Internal server error" });

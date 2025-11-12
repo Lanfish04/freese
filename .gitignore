@@ -3,3 +3,6 @@ node_modules
 .env
 /generated/prisma
 prisma/migrations
+
+capstonec242-ps563-e47abb49baa6.json
+capstonec242-ps563-dc926e6a9576.json

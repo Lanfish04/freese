@@ -100,21 +100,47 @@ async function editProduct(userId, id) {
     
 }
 
-async function updateProduct(id, data) {
-  const updateProduct = await prisma.products.update({
+async function updateProduct(userId, id, data) {
+  const farmer = await prisma.farmers.findUnique({
+    where: { userId },
+  });
+
+  if (!farmer) {
+    throw new Error("Farmer tidak ditemukan");
+  }
+
+  if (!id || isNaN(Number(id))) {
+    throw new Error("ID produk tidak valid");
+  }
+
+  const product = await prisma.products.findUnique({
+    where: { id: Number(id) },
+  });
+
+  if (!product) {
+    throw new Error("Produk tidak ditemukan");
+  }
+
+  if (product.farmerId !== farmer.id) {
+    throw new Error("Forbidden");
+  }
+
+  const updatedProduct = await prisma.products.update({
     where: { id: Number(id) },
     data: {
-      name: data.name,
-      price: Number(data.price),
-      stock: Number(data.stock),
-      image: data.image,
-      description: data.description,
-      category: data.category,
+      name: data.name ?? product.name,
+      price: data.price ? Number(data.price) : product.price,
+      stock: data.stock ? Number(data.stock) : product.stock,
+      image: data.image ?? product.image, 
+      unit: data.unit ?? product.unit,
+      description: data.description ?? product.description,
+      category: data.category ?? product.category,
     },
   });
 
-        return updateProduct;
+  return updatedProduct;
 }
+
 async function deleteProduct(farmerId) {
     return prisma.products.delete({
         where: { id: Number(farmerId) },

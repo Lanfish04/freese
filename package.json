@@ -10,6 +10,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@google-cloud/storage": "^7.17.3",
     "@prisma/client": "^6.18.0",
     "axios": "^1.12.2",
     "bcrypt": "^6.0.0",

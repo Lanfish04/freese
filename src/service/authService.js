@@ -15,6 +15,7 @@ async function addUser(data) {
     if (!data.photo) {
         data.photo = photoUrl;
     }
+
     const newUser = await prisma.users.create({
         data: {
             email: data.email,

@@ -50,7 +50,6 @@ async function updateDataProfile(req, res) {
             return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
         }
      
-    const photoDefault = process.env.DEFAULT_PHOTO;
     const existingProfile = await profileService.getProfileById(req.user.id);
     if (!existingProfile) {
       return res.status(404).json({ error: "Profile tidak ditemukan" });
@@ -74,7 +73,7 @@ async function updateDataProfile(req, res) {
       imageUrl = `https://storage.googleapis.com/${bucket.name}/${newFileName}`;
 
       // Hapus file lama dari bucket (jika ada)
-      if (existingProfile.photo !== photoDefault) {
+      if (existingProfile.photo) {
         try {
           const oldFileName = existingProfile.photo.split(`${bucket.name}/`)[1];
           await bucket.file(oldFileName).delete();
@@ -84,6 +83,8 @@ async function updateDataProfile(req, res) {
         }
       }
     }    
+
+
         const updatedProfile = await profileService.updateMyDataProfile(req.user.id, {
             ...req.body,
             photo: imageUrl});
@@ -109,56 +110,19 @@ async function updateDataProfile(req, res) {
     }
 }
 
-async function updateAkunProfile(req, res) {
+async function updatePasswordProfile(req, res) {
     try {
         if (!req.user || !req.user.id) {    
             return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
         }
-
-        // Ambil data user lama
-        const userLama = await prisma.users.findUnique({
-            where: { id: req.user.id }
-        });
-
-        if (!userLama) {
-            return res.status(404).json({ error: "User tidak ditemukan" });
-        }
-        let newEmail = req.body.email || userLama.email;
-
-        if (newEmail !== userLama.email) {
-            const existingUser = await prisma.users.findUnique({
-                where: { email: newEmail }
-            });
-
-            if (existingUser) {
-                return res.status(400).json({ error: "Email sudah dipakai user lain" });
-            }
-        }
-
-        
-        const updatedAkun = await prisma.users.update({
-            where: { id: req.user.id },
-            data: {
-                email: newEmail,
-                full_name: req.body.full_name || userLama.full_name,
-                phone: req.body.phone || userLama.phone,
-                photo: req.body.photo || userLama.photo
-            },
-            select: {
-                id: true,
-                email: true,
-                role: true
-            }
-        });
-
-        res.status(200).json({
-            message: "Berhasil memperbarui akun",
-            akun: updatedAkun
+        const changePassword = await profileService.changeMyPasswordProfile(req.user.id, req.body);
+            res.status(200).json({
+            message: "Berhasil memperbarui akun"
         });
 
     } catch (error) {
         console.error("Error updating akun:", error);
-        res.status(500).json({ error: "Internal server error" });
+        res.status(500).json({ error: error.message });
     }
 }
 
@@ -184,7 +148,7 @@ module.exports = {
     getOtherProfile,
     getMyProfile,
     updateDataProfile,
-    updateAkunProfile,
+    updatePasswordProfile,
     deleteProfile    
 };
         

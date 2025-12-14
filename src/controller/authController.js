@@ -38,7 +38,6 @@ async function login(req, res) {
 
 
 async function register(req, res) { 
-    
     try {
         const { email, password, full_name, phone, role, photo } = req.body;
         const existingUser = await authService.validateUser(email);
@@ -47,6 +46,9 @@ async function register(req, res) {
         }
         if (password.length < 8) {
             return res.status(400).json({ message: "Password harus memiliki minimal 8 karakter" });
+        }
+        if(!req.body.email || !req.body.password || !req.body.full_name || !req.body.phone || !req.body.role){
+            return  res.status(400).json({ message: "Semua field wajib diisi" });
         }
         const newUser = await authService.addUser({ email, password, full_name, phone, photo, role });
         return res.status(201).json({

@@ -17,5 +17,5 @@ router.route("/edit/data")
 
 router.route("/edit/akun")
     .get(middleware.accessValidate, profileCon.getMyProfile)
-    .put(middleware.accessValidate, profileCon.updateAkunProfile);
+    .put(middleware.accessValidate, profileCon.updatePasswordProfile);
 module.exports = router;

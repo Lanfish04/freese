@@ -1,4 +1,5 @@
 const prisma = require("../config/prisma");
+const bcrypt = require("bcrypt");
 
 async function getProfileById(id) {
     const Finduser = await prisma.users.findUnique({
@@ -122,14 +123,49 @@ if (user.role === "BUYER") {
     return null;
 }
 
-async function updateMyAkunProfile(id, data) {
-    return prisma.users.update({
+//Ganti password user
+async function changeMyPasswordProfile(id, data) {
+    const userLama = await prisma.users.findUnique({
+        where: { id: Number(id) }
+    });
+
+    if (!userLama) {
+        throw new Error("User tidak ditemukan");
+    }
+
+    const oldPassword = data.oldPassword;
+    const newPassword  = data.newPassword
+
+    if (!oldPassword || !newPassword) {
+        throw new Error("Password lama dan password baru wajib diisi");
+    }
+
+    // cek password lama
+    const isMatch = await bcrypt.compare(oldPassword, userLama.password);
+    if (!isMatch) {
+        throw new Error("Password lama salah");
+    }
+
+    // cegah password lama dipakai ulang
+    const isSamePassword = await bcrypt.compare(newPassword, userLama.password);
+    if (isSamePassword) {
+        throw new Error("Password baru tidak boleh sama dengan password lama");
+    }
+
+    if (newPassword.length < 8) {
+        throw new Error("Password baru minimal 8 karakter");
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    const updateAkun = await prisma.users.update({
         where: { id: Number(id) },
         data: {
-            ...(data.email && { email: data.email }),
-            ...(data.password && { password: data.password })
+            password: hashedPassword
         }
     });
+
+    return updateAkun;
 }
             
 
@@ -144,7 +180,7 @@ module.exports = {
     getProfileById,
     getMyAkunProfile,
     updateMyDataProfile,
-    updateMyAkunProfile,
+    changeMyPasswordProfile, 
     deleteProfileById
 
 };

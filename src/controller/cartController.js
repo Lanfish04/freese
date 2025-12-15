@@ -46,13 +46,6 @@ async function addToCart(req, res) {
       return res.status(403).json({ error: "Forbidden" });
     }
     const result = await cartService.addToCart(userId, req.body);
-  //   if (result) {
-  //     cartService.updatedStock(userId, req.body);
-  //     res.status(200).json({
-  //     message: "Produk berhasil ditambahkan ke keranjang",
-  //     data: result
-  //   });
-  // }
     res.status(200).json({
       message: "Produk berhasil ditambahkan ke keranjang",
       data: result

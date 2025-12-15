@@ -21,7 +21,7 @@ router.route("/edit/:id")
 	.put(upload.single('image'), middleware.accessValidate, productsCon.updateProduct);
 
 router.route("/delete/:id")
-	.delete(middleware.accessValidate, productsCon.deleteProduct);
+	.put(middleware.accessValidate, productsCon.deleteProduct);
 
 router.route("/search")
 	.get(productsCon.searchProduct);

@@ -75,8 +75,10 @@ model Products {
   category  String
   image  String?
   description  String?
+  isDeleted Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime ?
 
   farmer Farmers @relation(fields: [farmerId], references: [id])
   transactions Transactions[]
@@ -103,7 +105,7 @@ model Transactions {
   totalPrice Float
   shipAddress String?
   status TransactionStatus @default(PENDING)  
-  invoice String   @unique
+  invoice String?   @unique
   paymentStatus   PaymentStatus @default(UNPAID)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

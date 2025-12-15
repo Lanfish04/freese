@@ -7,7 +7,9 @@ const path = require('path');
 async function getProducts(req, res) {
     try {
         const products = await product.getProducts();
-        res.status(200).json(products);
+        res.status(200).json({
+          message: "Berhasil menampilkan produk", 
+          data : products});
     }catch{
         console.error("Error fetching products:", error);
         res.status(500).json({ error: "Internal server error" });
@@ -19,13 +21,10 @@ async function detailProduct(req, res) {
     try {
       const {id} = req.params;
         const productById = await product.getProductById(id);
-        if (!productById) {
-            return res.status(404).json({ error: "Product not found" });
-        }
         res.status(200).json(productById);
     } catch (error) {
         console.error("Error fetching product by ID:", error);
-        res.status(500).json({ error: "Internal server error" });
+        res.status(400).json({ error: error.message });
     }
 }
 
@@ -183,32 +182,18 @@ async function updateProduct(req, res) {
 async function deleteProduct(req, res) {
     try {
     const { id } = req.params;
-    const farmer = await prisma.farmers.findFirst({
-      where: { userId: req.user.id },
-    });
       if (!req.user || !req.user.id) {
       return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
     }
-
     if (req.user.role !== 'FARMER') {
       return res.status(403).json({ error: "Hanya petani yang dapat menghapus produk" });
     }
-    if (!farmer) {
-      return res.status(404).json({ error: "Petani tidak ditemukan, pastikan akun anda terdaftar sebagai petani" });
-    }
-    const productById = await product.getProductById(id);
-    if (!productById) {
-        return res.status(404).json({ error: "Produk tidak ditemukan" });
-    }
-    // Cek kepemilikan produk
-    if (productById.farmerId !== farmer.id) {
-      return res.status(403).json({ error: "Forbidden: Milik orang lain" });
-    }
-    await product.deleteProduct(id);
+
+    await product.deleteProduct(req.user.id, id);
     res.status(200).json({ message: "Produk berhasil dihapus" });
     }catch (error) {
         console.error("Error deleting product:", error);
-        res.status(500).json({ error: "Internal server error" });
+        res.status(400).json({ error: error.message });
     }
   
 }

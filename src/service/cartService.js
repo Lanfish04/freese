@@ -7,9 +7,11 @@ async function addToCart(userId, data) {
     });
     if (!product) {
         throw new Error("Product tidak ditemukan");
-        
     }
-    const buyer = await prisma.buyers.findUnique({
+    if (product.isDeleted) {
+        throw new Error("Product tidak tersedia");
+    }
+const buyer = await prisma.buyers.findUnique({
   where: { userId: userId }});  
     
     const existingCartItem = await prisma.cart.findFirst({
@@ -22,7 +24,19 @@ async function addToCart(userId, data) {
         return prisma.cart.update({
             where: { id: existingCartItem.id },
             data: { quantity: existingCartItem.quantity + Number(data.quantity || 1) },
-            include: { product: true }
+            include: {
+            product: {
+                select : {
+                    id: true,
+                    name: true,
+                    price: true,
+                    image: true,
+                    unit: true,
+                    category: true,
+                    description: true,
+                    isDeleted : false
+                }
+            } }
         });
     }
 
@@ -35,7 +49,18 @@ async function addToCart(userId, data) {
             quantity: data.quantity ? Number(data.quantity) : 1 
         },
         include: {
-         product: true
+         product: {
+            select : {
+                    id: true,
+                    name: true,
+                    price: true,
+                    image: true,
+                    unit: true,
+                    category: true,
+                    description: true,
+                    isDeleted : false
+                }
+         }
         }
         });
 }
@@ -63,10 +88,24 @@ async function addToCart(userId, data) {
 async function getCartByUserId(id) {
     const buyer = await prisma.buyers.findUnique({
   where: { userId: id }});
+    if (!buyer) {
+        throw new Error("Pembeli tidak ditemukan");
+    }
     return prisma.cart.findMany({
         where: { buyerId : buyer.id },
         include: {
-            product: true
+            product: {
+                select : {
+                    id: true,
+                    name: true,
+                    price: true,
+                    image: true,
+                    unit: true,
+                    category: true,
+                    description: true,
+                    isDeleted : false
+                }
+            }
         }
         
     });
@@ -103,7 +142,18 @@ async function updateCartItem(userId, data) {
     return prisma.cart.update({
         where: { id: cartItem.id },
         data: { quantity: Number(data.quantity) },
-        include: { product: true }
+        include: { product: {
+            select : {
+                    id: true,
+                    name: true,
+                    price: true,
+                    image: true,
+                    unit: true,
+                    category: true,
+                    description: true,
+                    isDeleted : false
+                }
+        } }
     });
 }
 
@@ -136,7 +186,6 @@ async function deleteAllItem(userId) {
     if (!buyer) {
         throw new Error("Pembeli tidak ditemukan");
     } 
-
     return prisma.cart.deleteMany({
         where: { buyerId : buyer.id }
     });
@@ -164,7 +213,18 @@ async function selectionItemCart(userId, cartId, isSelected) {
     return prisma.cart.update({
         where : {id : Number(cartId)},
         data : { isSelected : Boolean(isSelected) },
-        include : {product:true}
+        include : {product:{
+            select : {
+                    id: true,
+                    name: true,
+                    price: true,
+                    image: true,
+                    unit: true,
+                    category: true,
+                    description: true,
+                    isDeleted : false
+                }
+        }}
     });
 }
 

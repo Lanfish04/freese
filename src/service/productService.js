@@ -3,7 +3,8 @@ const prisma = require('../config/prisma');
 
 async function getProducts() {
     return prisma.products.findMany({
-        include :{ 
+      where: { isDeleted: false },  
+      include :{ 
         farmer:{
             select:{
                 farmName: true,
@@ -18,7 +19,7 @@ async function getProducts() {
 
 async function getProductsByFarmerId(farmerId) {
     return prisma.products.findMany({
-        where: { farmerId: Number(farmerId) },
+        where: { farmerId: Number(farmerId), isDeleted : false },
         include :{
         farmer:{
             select:{
@@ -33,7 +34,7 @@ async function getProductsByFarmerId(farmerId) {
 
 async function getProductById(id) {
     const product = await prisma.products.findUnique({
-        where:{ id : Number(id)},
+        where:{ id : Number(id), isDeleted : false },
         include :{ 
         farmer:{
             select:{
@@ -102,7 +103,7 @@ async function editProduct(userId, id) {
 
 async function updateProduct(userId, id, data) {
   const farmer = await prisma.farmers.findUnique({
-    where: { userId },
+    where: { userId : userId },
   });
 
   if (!farmer) {
@@ -141,11 +142,32 @@ async function updateProduct(userId, id, data) {
   return updatedProduct;
 }
 
-async function deleteProduct(farmerId) {
-    return prisma.products.delete({
-        where: { id: Number(farmerId) },
+async function deleteProduct(userId, id) {
+  const farmer = await prisma.farmers.findUnique({
+        where: { userId: userId }
     });
-  
+    if (!farmer) {
+        throw new Error("Farmer tidak ditemukan");
+    }
+    const product = await prisma.products.findUnique({
+      where: { id: Number(id) },
+    });
+
+    if (!product) {
+        throw new Error("Produk tidak ditemukan");
+    }
+
+    if (product.farmerId !== farmer.id) {
+        throw new Error("Forbidden : Produk bukan milik Anda");
+    }
+
+    return prisma.products.update({
+      where: { id: Number(id) },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+      },
+    });  
 }
 
 

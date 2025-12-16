@@ -87,12 +87,16 @@ const buyer = await prisma.buyers.findUnique({
 
 async function getCartByUserId(id) {
     const buyer = await prisma.buyers.findUnique({
-  where: { userId: id }});
+    where: { userId: id }});
     if (!buyer) {
         throw new Error("Pembeli tidak ditemukan");
     }
     return prisma.cart.findMany({
-        where: { buyerId : buyer.id },
+        where: { buyerId : buyer.id,
+            product : {
+                isDeleted : false
+            }
+         },
         include: {
             product: {
                 select : {
@@ -103,7 +107,6 @@ async function getCartByUserId(id) {
                     unit: true,
                     category: true,
                     description: true,
-                    isDeleted : false
                 }
             }
         }

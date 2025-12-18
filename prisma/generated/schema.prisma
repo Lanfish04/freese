@@ -1,0 +1,129 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"]
+  output          = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id            Int      @id @default(autoincrement())
+  full_name     String
+  email         String   @unique
+  password      String
+  phone         String
+  role          Role
+  photo         String?
+  refresh_token String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  Buyers  Buyers?
+  Farmers Farmers?
+}
+
+enum Role {
+  FARMER
+  BUYER
+}
+
+model Buyers {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+  businessName String?
+  businessType String?
+  address      String?
+  location     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         Users          @relation(fields: [userId], references: [id])
+  transactions Transactions[]
+  cart         Cart[]
+}
+
+model Farmers {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+  farmName     String?
+  address      String?
+  productsType String?
+  location     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user     Users      @relation(fields: [userId], references: [id])
+  Products Products[]
+}
+
+model Products {
+  id          Int       @id @default(autoincrement())
+  farmerId    Int
+  name        String
+  price       Float
+  stock       Int
+  unit        String
+  category    String
+  image       String?
+  description String?
+  isDeleted   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  farmer       Farmers        @relation(fields: [farmerId], references: [id])
+  transactions Transactions[]
+  cart         Cart[]
+}
+
+model Cart {
+  id         Int      @id @default(autoincrement())
+  buyerId    Int
+  productId  Int
+  quantity   Int      @default(1)
+  isSelected Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  buyer      Buyers   @relation(fields: [buyerId], references: [id])
+  product    Products @relation(fields: [productId], references: [id])
+}
+
+model Transactions {
+  id            Int               @id @default(autoincrement())
+  buyerId       Int
+  productId     Int
+  quantity      Int
+  totalPrice    Float
+  shipAddress   String?
+  status        TransactionStatus @default(PENDING)
+  invoice       String?           @unique
+  paymentStatus PaymentStatus     @default(UNPAID)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Products @relation(fields: [productId], references: [id])
+  buyer   Buyers   @relation(fields: [buyerId], references: [id])
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  FAILED
+}

@@ -7,7 +7,7 @@
 generator client {
   provider = "prisma-client-js"
   previewFeatures = ["fullTextSearchPostgres"]
-  // output   = "../generated/prisma"
+  output          = "./generated"
 }
 
 datasource db {
@@ -107,6 +107,8 @@ model Transactions {
   status TransactionStatus @default(PENDING)  
   invoice String?   @unique
   paymentStatus   PaymentStatus @default(UNPAID)
+
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -1,6 +1,7 @@
 const transactionsService = require("../service/transactionsService");
+const bucket = require('../config/storage');
 
-
+//Function untuk get history
 async function historyTransaction(req, res) {
     try {
       const status = req.query.status;  
@@ -14,8 +15,7 @@ async function historyTransaction(req, res) {
             message: "Riwayat transaksi berhasil diambil",
             buyerTransactions});
         }
-        
-        if (req.user.role === "FARMER") {
+        else if (req.user.role === "FARMER") {
         const farmerTransactions = await transactionsService.getHistoryFarmerTransaction(req.user.id, status);
         res.status(200).json({
             message: "Riwayat transaksi berhasil diambil",
@@ -23,18 +23,44 @@ async function historyTransaction(req, res) {
         });
       }
 
-      else{
-        res.status(403).json({ error: "Forbidden" });
-      }
+      return res.status(403).json({ error: "Forbidden" });
+  
     } catch (error) {
         console.error("Error fetching transaction history:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 }   
 
+//Function untuk get history by id
+async function getHistoryById(req, res){
+ try{
+  const id = req.params;
+  if (!req.user || !req.user.id) {
+            return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
+        }
+        if (req.user.role === "BUYER") {
+            const buyerTransactions = await transactionsService.getHistoryBuyerById(req.user.id, id);
+            res.status(200).json({
+            message: "Riwayat transaksi berhasil diambil",
+            buyerTransactions});
+        }
+        else if (req.user.role === "FARMER") {
+        const farmerTransactions = await transactionsService.getHistoryFarmerById(req.user.id, id);
+        res.status(200).json({
+            message: "Riwayat transaksi berhasil diambil",
+            farmerTransactions
+        });
+      }
 
+      return  res.status(403).json({ error: "Forbidden" });
+  
+    } catch (error) {
+        console.error("Error fetching transaction history:", error);
+        res.status(500).json({ error: "Internal server error" });
+    } 
+}
 
-
+//Function untuk membuat 1 transaksi
 async function createOneTransaction(req, res) {
   try {
     if (!req.user || req.user.role !== "BUYER") {
@@ -53,6 +79,7 @@ async function createOneTransaction(req, res) {
   }
 }
 
+//Function untuk membuat banyak transaksi dari keranjang
 async function createSelectedTransactions(req, res) {
   try {
     if (!req.user || req.user.role !== "BUYER") {
@@ -70,13 +97,14 @@ async function createSelectedTransactions(req, res) {
   }
 }
 
-async function updateStatusTransaction(req, res) {
+//Function untuk update status transaksi dari midtrans
+async function updateStatusPembayaran(req, res) {
   try {
     const { order_id, status_code, transaction_status } = req.query
 
     await transactionsService.getRefreshTransaction(order_id, status_code, transaction_status);
 
-    res.json({ message: "Status transaksi diperbarui" });
+    res.json({ message: "Status pembayaran diperbarui" });
   
 }catch (error) {
     console.error("Error uploading payment proof:", error);
@@ -84,15 +112,33 @@ async function updateStatusTransaction(req, res) {
   }
 }
 
-
-async function editPaymentStatus(req, res) {
+//Function untuk mengubah status transaksi untuk farmer
+async function editTransactionStatus(req, res) {
   try {
+    const { transactionId } =req.body;
+    const invoice = req.file;
+    const userId = req.user.id;
     if (!req.user || req.user.role !== "FARMER") {
       return res.status(403).json({ error: "Hanya farmer yang bisa mengubah status transaksi" });
     }
-    const transaction = await transactionsService.editPaymentStatus(req.user.id, req.body);
+    let imageUrl = null
+    if (invoice) {
+      const blob = bucket.file(`${userId}/invoices/${Date.now()}_${invoice.originalname}`);
+      const blobStream = blob.createWriteStream({
+        resumable: false,
+        contentType: invoice.mimetype,
+      });
+        await new Promise((resolve, reject) => {
+        blobStream.on('finish', resolve);
+        blobStream.on('error', reject);
+        blobStream.end(req.file.buffer);
+  });
+    imageUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
+    }
+
+    const transaction = await transactionsService.editStatusTransactionFarmer(userId, transactionId, imageUrl);
     res.status(200).json({
-      message: "Status berhasil diperbarui",
+      message: "Status transaksi berhasil diperbarui",
       transaction
     });
   } catch (error) {
@@ -100,6 +146,26 @@ async function editPaymentStatus(req, res) {
     res.status(400).json({ error: error.message });
   }
 }
+
+async function updateStatusComplete(req, res){
+  try{
+    const {transactionId, status} = req.body;
+    const userId = req.user.id;
+    if(!req.user || req.user.role !== "BUYER"){
+      return res.status(403).json({ error: "Hanya buyer yang bisa mengubah status transaksi" });
+    }
+    const transaction = await transactionsService.editStatusTransactionBuyer(userId, transactionId, status);
+    res.status(200).json({
+      message: "Status transaksi berhasil diperbarui",
+      transaction
+    });
+  }catch(error){
+    console.error("Error updating transaction status:", error);
+    res.status(400).json({ error: error.message });
+
+  }
+}
+
 
 async function payClick(req, res) {
   try {
@@ -120,10 +186,12 @@ async function payClick(req, res) {
 
 
 module.exports = {
+    getHistoryById,
     createOneTransaction,
     historyTransaction,
     createSelectedTransactions,
-    updateStatusTransaction,
-    editPaymentStatus,
+    editTransactionStatus,
+    updateStatusPembayaran,
+    updateStatusComplete,
     payClick
 };

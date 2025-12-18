@@ -2,7 +2,7 @@ const prisma = require("../config/prisma");
 const axios = require("axios");
 const dotenv = require('dotenv');
 
-
+//Function untuk get data history buyer
 async function getHistoryBuyerTransaction(userId, status) {
     const buyer = await prisma.buyers.findUnique({
         where: { userId: userId }
@@ -13,10 +13,52 @@ async function getHistoryBuyerTransaction(userId, status) {
     return prisma.transactions.findMany({
         where: { buyerId: buyer.id, 
           paymentStatus: status },
-        include: { product: true }
+        include: {  
+        product: {
+          select : {
+                id: true,
+                name: true,
+                price: true,
+                image: true,
+                unit: true,
+       }
+      },
+     }
     });
 }
 
+//Function untuk get data history buyer by id
+async function getHistoryBuyerById(userId, id){
+const buyer = await prisma.buyers.findUnique({
+        where: { userId: userId }
+    });
+    if (!buyer) {
+        throw new Error("Buyer tidak ditemukan");
+    }
+    const transaction = await prisma.transactions.findUnique({
+      where: { id: Number(id),
+      buyerId: buyer.id },
+      include: {  
+        product: {
+          select : {
+                id: true,
+                name: true,
+                price: true,
+                image: true,
+                unit: true,
+       }
+      },
+     }
+    });
+    if (!transaction) {
+      throw new Error("Transaksi tidak ditemukan");
+    }
+    return transaction;
+}
+
+
+
+//Function untuk get data history farmer
 async function getHistoryFarmerTransaction(userId, status){
   const farmer = await prisma.farmers.findUnique({
     where : {userId: userId}
@@ -25,13 +67,76 @@ async function getHistoryFarmerTransaction(userId, status){
     throw new Error("Farmer tidak ditemukan");
   }
   return prisma.transactions.findMany({
-    where: { product: { farmerId: farmer.id },
-      paymentStatus: "PAID" },
-    include: { product: true, buyer: true }
+    where: { product: { 
+      farmerId: farmer.id 
+    },
+    paymentStatus: "PAID" },
+    include: {  
+      product: {
+        select : {
+                id: true,
+                name: true,
+                price: true,
+                image: true,
+                unit: true,
+       }
+      },
+      buyer: {
+        select: {
+          id: true,
+          full_name: true,
+          email: true,
+          phone: true,
+          address: true
+       } 
+      }
+     }
   });
 } 
 
+//Function untuk get data history farmer by id
+async function getHistoryFarmerById(userId, id){
+  const farmer = await prisma.farmers.findUnique({
+    where : {userId: userId}
+  });
+  if (!farmer){
+    throw new Error("Farmer tidak ditemukan");
+  }
+  const transaction = await prisma.transactions.findUnique({
+    where: { product: { 
+      id : Number(id),
+      farmerId: farmer.id
+    },
+    paymentStatus: "PAID" },
+    include: {  
+      product: {
+        select : {
+                id: true,
+                name: true,
+                price: true,
+                image: true,
+                unit: true,
+       }
+      },
+      buyer: {
+        select: {
+          id: true,
+          full_name: true,
+          email: true,
+          phone: true,
+          address: true
+       } 
+      }
+     }
+  });
+  if (!transaction) {
+      throw new Error("Transaksi tidak ditemukan");
+    }
+    return transaction;
+}
 
+
+//Function to create a transaction for a single product
 async function createOneTransaction(userId, data) {
   const buyer = await prisma.buyers.findUnique({
   where: { userId: userId }});
@@ -39,26 +144,20 @@ async function createOneTransaction(userId, data) {
   if (!buyer) {
     throw new Error("Buyer tidak ditemukan");
   }
-
+  //Check apakah produk tersedia
   const products = await prisma.products.findFirst({
-    where:{ id: Number(data.productId)}
+    where:{ id: Number(data.productId),
+      isDeleted: false
+    }
   })
-
   if (!products) {
     throw new Error("Produk tidak ditemukan");
   }
-  
   if (products.stock < data.quantity) {
     throw new Error("Stok produk tidak mencukupi");
   }
 
   const totalPrice = products.price * data.quantity;
-
-  await prisma.products.update({
-    where: { id: products.id },
-    data: { stock: products.stock - data.quantity },
-  });
-
   const transaction = await prisma.transactions.create({
     data: {
       buyerId: buyer.id,
@@ -66,40 +165,70 @@ async function createOneTransaction(userId, data) {
       totalPrice: totalPrice,
       quantity: Number(data.quantity),
       shipAddress: data.shipAddress || buyer.address,
-      status: "PENDING",
-      paymentMethod: data.paymentMethod || "TRANSFER_BANK"
-    }, include: { product: true, buyer: true }
-      
+    }, 
+    include: {
+       product: {
+        select : {
+                id: true,
+                name: true,
+                price: true,
+                image: true,
+                unit: true,
+       }
+      },
+       buyer: true
+      }
   });
   return transaction;
 }
 
+//Function to create transactions for multiple products from cart
 async function createManyTransactions(userId, data) {
+  
   const buyer = await prisma.buyers.findUnique({
     where: { userId: userId }
   });
   if (!buyer) {
     throw new Error("Buyer tidak ditemukan");
   }
+await prisma.cart.updateMany({
+  where: {
+    buyerId: buyer.id,
+    isSelected: true,
+    product: {
+      isDeleted: true
+    }
+  },
+  data: {
+    isSelected: false
+  }
+});
 
  const selectedItems = await prisma.cart.findMany({
     where: {
        buyerId: buyer.id, 
-       isSelected: true },
-    include: { product: true }
+       isSelected: true,
+      product: {
+        isDeleted: false
+      },
+    },
+    include: { 
+      product: true
+    }
   });
-
-  if (selectedItems.length === 0) {
+  if (selectedItems.some(item => item.product.isDeleted)) {
+    throw new Error("Salah satu produk dalam keranjang tidak tersedia");
+  }
+if (selectedItems.length === 0) {
     throw new Error("Tidak ada item yang dipilih");
   }
-
   const transactionsData = [];
 
   for (const item of selectedItems) {
     const product = item.product;
 
     if (!product) {
-      throw new Error(`${product.name} tidak ditemukan`);
+      throw new Error(`Produk tidak ditemukan atau tidak tersedia untuk produk ${item.name}`);
     }
 
     if (product.stock < item.quantity) {
@@ -108,17 +237,16 @@ async function createManyTransactions(userId, data) {
 
     const totalPrice = product.price * item.quantity;
 
-    await prisma.products.update({
-      where: { id: product.id },
-      data: { stock: product.stock - item.quantity },
-    });
+    // await prisma.products.update({
+    //   where: { id: product.id },
+    //   data: { stock: product.stock - item.quantity },
+    // });
 
     transactionsData.push({
       buyerId: buyer.id,
       productId: product.id,
       quantity: item.quantity,
       totalPrice,
-      status: "PENDING",
       shipAddress: data.shipAddress || buyer.address,
       createdAt: new Date(),
     });
@@ -133,6 +261,7 @@ async function createManyTransactions(userId, data) {
   return transactionsData;
 }
 
+//Function mengubah status pembeli
 async function getRefreshTransaction(order_id, status_code, transaction_status) {
 const order = await prisma.transactions.findUnique({
   where: { id: Number(order_id) }
@@ -142,6 +271,22 @@ if (!order) {
 }
 const status = transaction_status === "capture" ? "PAID" : "FAILED";
 
+if (status === "FAILED") {
+  return prisma.transactions.update({
+    where: { id: Number(order_id) },
+    data: { 
+      paymentStatus: status,
+      status : "CANCELED",
+      updatedAt: new Date()
+    }
+  }); 
+}
+
+await prisma.products.update({
+  where: { id: order.productId },
+  data: { stock: { decrement: order.quantity } }
+});
+
 return prisma.transactions.update({
   where: { id: Number(order_id) },
   data: {
@@ -149,38 +294,10 @@ return prisma.transactions.update({
     updatedAt: new Date()
   }
 });
-  //   const buyer = await prisma.buyers.findUnique({
-//     where: { userId: userId }
-//   });
-
-// if(!buyer) {
-//   throw new Error("Buyer tidak ditemukan");
-// }
-
-// const transaction = await prisma.transactions.findUnique({
-//   where: { id: Number(transactionId) }
-// });
-
-// if (!transaction) {
-//   throw new Error("Transaksi tidak ditemukan");
-// }
-
-// if (!transaction.buyerId === buyer.id) {
-//   throw new Error("Anda tidak berhak mengunggah bukti pembayaran untuk transaksi ini");
-// }
-
-
-// return prisma.transactions.update({
-//   where: { id: Number(transactionId) },
-//   data: {
-//     paymentProof: paymentProofUrl,
-//     status: "PAID",
-//     paymentStatus: "PAID",
-//   }
-// });
 } 
 
-async function editStatusTransactionFarmer(userId, data) {
+//Function edit status untuk farmer
+async function editStatusTransactionFarmer(userId, transactionId, imageUrl) {
   const farmer = await prisma.farmers.findUnique({
       where: { userId: userId }
     });
@@ -188,96 +305,99 @@ async function editStatusTransactionFarmer(userId, data) {
     if (!farmer){
       throw new Error("Farmer tidak ditemukan");
     }
-    
-    const farmerProducts = await prisma.products.findMany({
-      where: { farmerId: farmer.id }
-    }); 
-
     const transaction = await prisma.transactions.findUnique({
-      where: { id: Number(data.transactionId),
-      productId: farmerProducts.id
-       },
-      include: { product: true }
-    });
-
-    if (!transaction) {
+      where: { id: Number(transactionId)},
+      include: { 
+        product: true
+    }
+  });
+  if (!transaction) {
     throw new Error("Transaksi tidak ditemukan");
   }
-
-  if (transaction.product.farmerId !== farmer.id) {
-    throw new Error("Anda tidak berhak mengubah status transaksi ini");
-  } 
+  if(transaction.product.farmerId !== farmer.id) {
+  throw new Error("Anda tidak berhak mengubah status transaksi ini");
+  }
   if (transaction.paymentStatus !== "PAID") {
-    throw new Error("Pembayaran belum selesai. Tidak dapat mengubah status transaksi.");
-  }
-
-  // Mencegah pengaturan status pembayaran melalui endpoint ini
-  if (data.status === "PAID") {
-    throw new Error("Status tidak valid");
-  }
+  throw new Error("Pembayaran belum selesai");
+}
+if (transaction.status !== "PENDING") {
+  throw new Error("Status transaksi tidak valid untuk diproses");
+}
+if(!imageUrl){
+  throw new Error("Bukti resi tidak boleh kosong")
+}
 
   const updateTransaction = await prisma.transactions.update({
-    where: { id: Number(data.transactionId) },
-    data: { status: data.status},
-    include: { product: true, buyer: true },
+    where: { id: Number(transactionId) },
+    data: { invoice : imageUrl,
+      status : "PROCESSING"
+    },
+    include: { 
+      product: true, 
+      buyer: true },
   });
 
   return updateTransaction;
 }
 
-
-async function editStatusTransaction(userId, data) {
-
-  const farmer = await prisma.farmers.findUnique({
+async function editStatusTransactionBuyer(userId, transactionId, status) {
+  const buyer = await prisma.buyers.findUnique({
       where: { userId: userId }
     });
-    if (!farmer){
-      throw new Error("Farmer tidak ditemukan");
+    if (!buyer){
+      throw new Error("Buyer tidak ditemukan");
     }
     const transaction = await prisma.transactions.findUnique({
-      where: { id: Number(data.transactionId) },
-      include: { product: true }
-    });
-    if (!transaction) {
+      where: { id: Number(transactionId)},
+  });
+  if (!transaction) {
     throw new Error("Transaksi tidak ditemukan");
   }
-  if (transaction.product.farmerId !== farmer.id) {
-    throw new Error("Anda tidak berhak mengubah status transaksi ini");
+  if(transaction.buyerId !== buyer.id) {
+  throw new Error("Anda tidak berhak mengubah status transaksi ini");
   }
-
+  if (transaction.status !== "PROCESSING") {
+  throw new Error("Status transaksi tidak valid untuk diproses");
+  }
+  const updateTransaction = await prisma.transactions.update({
+    where: { id: Number(transactionId) },
+    data: { status : status
+    },
+  }); 
+  return updateTransaction;
 }
 
-async function deleteTransactions(userId, transactionId) {
-  const buyer = await prisma.buyers.findUnique({
-    where: { userId: userId }
-  });
-  if (!buyer) {
-    throw new Error("Buyer tidak ditemukan");
-  }
+// async function deleteTransactions(userId, transactionId) {
+//   const buyer = await prisma.buyers.findUnique({
+//     where: { userId: userId }
+//   });
+//   if (!buyer) {
+//     throw new Error("Buyer tidak ditemukan");
+//   }
 
-  const transactions = await prisma.transactions.findUnique({
-    where: { id: Number(transactionId),
-      status: "COMPLETED" || "CANCELED"
-     }
-  });
+//   const transactions = await prisma.transactions.findUnique({
+//     where: { id: Number(transactionId),
+//       status: "COMPLETED" || "CANCELED"
+//      }
+//   });
 
-  if (!transactions) {
-    throw new Error("Transaksi tidak ditemukan");
-  }
-
-
-  return prisma.transactions.delete({
-    where: {
-      id: Number(transactionId),
-      buyerId: buyer.id,
-      status: "COMPLETED" || "CANCELED"
-    }
-  });
-}
+//   if (!transactions) {
+//     throw new Error("Transaksi tidak ditemukan");
+//   }
 
 
+//   return prisma.transactions.delete({
+//     where: {
+//       id: Number(transactionId),
+//       buyerId: buyer.id,
+//       status: "COMPLETED" || "CANCELED"
+//     }
+//   });
+// }
 
 
+
+//Function generate link pembayaran
 async function payClick(transactionsId) {
   const transaction = await prisma.transactions.findFirst({
     where: {
@@ -315,16 +435,18 @@ async function payClick(transactionsId) {
   return result.redirect_url;
 }
 
+
 module.exports = {
   createOneTransaction,
   getHistoryBuyerTransaction,
   getHistoryFarmerTransaction,
   createManyTransactions,
   getRefreshTransaction,
-  editStatusTransaction,
   editStatusTransactionFarmer,
-  // editStatusTransactionBuyer,
-  deleteTransactions,
+  getHistoryBuyerById,
+  getHistoryFarmerById,
+  editStatusTransactionBuyer,
+  // deleteTransactions,
   payClick
 };
 

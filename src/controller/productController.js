@@ -66,7 +66,7 @@ async function createProduct(req, res) {
 
     let imageUrl = null;
     if (req.file) {
-      const blob = bucket.file(`products/${req.user.id}/${Date.now()}-${path.basename(req.file.originalname)}`);
+      const blob = bucket.file(`${req.user.id}/products/${Date.now()}-${path.basename(req.file.originalname)}`);
       const blobStream = blob.createWriteStream({
         resumable: false,
         contentType: req.file.mimetype,
@@ -136,7 +136,7 @@ async function updateProduct(req, res) {
 
     // Jika ada upload file baru
     if (file) {
-      const newFileName = `products/${req.user.id}/${Date.now()}-${file.originalname}`;
+      const newFileName = `${req.user.id}/products/${Date.now()}-${file.originalname}`;
       const blob = bucket.file(newFileName);
       const blobStream = blob.createWriteStream({
         resumable: false,

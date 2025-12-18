@@ -57,7 +57,7 @@ async function updateDataProfile(req, res) {
     let imageUrl = existingProfile.photo; // default: pakai yang lama
     // Jika ada upload file baru
     if (req.file) {
-      const newFileName = `user-photos/${req.user.id}/${Date.now()}-${req.file.originalname}`;
+      const newFileName = `${req.user.id}/user-photos/${Date.now()}-${req.file.originalname}`;
       const blob = bucket.file(newFileName);
       const blobStream = blob.createWriteStream({
         resumable: false,

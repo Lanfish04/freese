@@ -17,6 +17,19 @@ async function getProducts(req, res) {
   
 }
 
+async function getProductsWithFilter(req, res) {
+try{
+const searchProduct = await product.getProductsWithFilter(req.query);
+res.status(200).json({
+    message: "Berhasil menampilkan produk dengan filter",
+    data: searchProduct
+});
+}catch (error) {
+    console.error("Error fetching products with filter:", error);
+    res.status(500).json({ error: "Internal server error" });
+}
+}
+
 async function detailProduct(req, res) {
     try {
       const {id} = req.params;
@@ -215,6 +228,7 @@ async function searchProduct(req, res) {
 
 module.exports = { 
     getProducts,
+    getProductsWithFilter,
     getMyProducts,
     detailProduct,
     createProduct,

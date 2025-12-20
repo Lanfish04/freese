@@ -6,7 +6,7 @@ const upload = require("../middleware/upload");
 
 
 router.route("/")
-	.get(productsCon.getProducts)
+	.get(productsCon.getProductsWithFilter)
 	.post(upload.single('image'), middleware.accessValidate, productsCon.createProduct);
 
 router.route("/myproducts")

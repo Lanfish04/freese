@@ -171,56 +171,58 @@ async function deleteProduct(userId, id) {
 }
 
 
-async function searchProduct(keyword) {
-const searchProducts = await prisma.products.findMany({
-  where: {
-    body: {
-      search : keyword,
+async function getProductsWithFilter(query) {
+  const {
+    search,
+    category,
+    minPrice,
+    maxPrice
+  } = query;
+
+  return prisma.products.findMany({
+    where: {
+      isDeleted: false,
+
+      // SEARCH (nama produk)
+      ...(search && {
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { category: { contains: search, mode: "insensitive" } },
+          { description: { contains: search, mode: "insensitive" } }
+        ]
+      }),
+
+      // FILTER KATEGORI
+      ...(category && {
+        category: {
+          equals: category,
+          mode: "insensitive"
+        }
+      }),
+
+      // FILTER HARGA
+      ...(minPrice || maxPrice ? {
+        price: {
+          ...(minPrice && { gte: Number(minPrice) }),
+          ...(maxPrice && { lte: Number(maxPrice) })
+        }
+      } : {})
     },
-  },
-  include: {
-    farmer: {
-      select: {
-        farmName: true,
-        address: true,
-        productsType: true,
-      },
+
+    include: {
+      farmer: {
+        select: {
+          farmName: true,
+          address: true,
+          productsType: true
+        }
+      }
     },
-  },
-  orderBy: {
-    createdAt: 'desc',
-  },
-  take: 20,
-});
 
-
-  //   const searchProducts = prisma.products.findMany({
-//   where: {
-//     AND: [
-//       keyword ? { name: { contains: keyword, mode: 'insensitive' } } : {},
-//       category && category !== 'all' ? { category: { equals: category } } : {},
-//     ],
-//   },
-//   include: {
-//     farmer: {
-//       select: {
-//         farmName: true,
-//         address: true,
-//         productsType: true,
-        
-//       },
-//     },
-//   },
-//   orderBy: {
-//     createdAt: 'desc',
-//   },
-//   take: 20,
-// });
-
-// if (!searchProducts) {
-//     throw new Error("Produk tidak ditemukan");
-// }
-return searchProducts;
+    orderBy: {
+      createdAt: "desc"
+    }
+  });
 }
 
 module.exports = { 
@@ -231,5 +233,5 @@ module.exports = {
     editProduct,
     updateProduct,
     deleteProduct,
-    searchProduct
+    getProductsWithFilter
 };

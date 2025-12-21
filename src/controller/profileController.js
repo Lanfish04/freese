@@ -4,7 +4,7 @@ const bucket = require('../config/storage');
 
 
 
-async function getOtherProfile(req, res) {
+async function getOtherProfile(req, res, next) {
     try {
         const {id} = req.params;
         if (!req.user || !req.user.id) {    
@@ -12,39 +12,31 @@ async function getOtherProfile(req, res) {
         }
 
         const profile = await profileService.getProfileById(id);
-        if (!profile) {
-            return res.status(404).json({ error: "Profile tidak ditemukan"});
-        }
         res.status(200).json({
             message: "Berhasil menampilkan profile",
             profile});
     } catch (error) {
-        console.error("Error fetching profile:", error);
-        res.status(500).json({ error: "Internal server error" });
+        next(error);
     }   
 }
 
-async  function getMyProfile(req, res) {
+async  function getMyProfile(req, res, next) {
     try {
         if (!req.user || !req.user.id) {
             return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
         }
 
         const profile = await profileService.getProfileById(req.user.id, req.user.role);  
-        if (!profile) {
-            return res.status(404).json({ error: "Profile tidak ditemukan" });
-        }
         res.status(200).json({
             message: "Berhasil menampilkan profile",
             profile});
     } catch (error) {
-        console.error("Error fetching profile:", error);
-        res.status(500).json({ error: "Internal server error" });
+        next(error);
     }   
 }
 
 
-async function updateDataProfile(req, res) {    
+async function updateDataProfile(req, res, next) {    
     try {
         if (!req.user || !req.user.id) {    
             return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
@@ -105,12 +97,11 @@ async function updateDataProfile(req, res) {
             profile: safeProfile
         });
     } catch (error) {
-        console.error("Error updating profile:", error);
-        res.status(500).json({ error: "Internal server error" });
+        next(error);
     }
 }
 
-async function updatePasswordProfile(req, res) {
+async function updatePasswordProfile(req, res, next) {
     try {
         if (!req.user || !req.user.id) {    
             return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
@@ -121,8 +112,7 @@ async function updatePasswordProfile(req, res) {
         });
 
     } catch (error) {
-        console.error("Error updating akun:", error);
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 }
 
@@ -133,13 +123,9 @@ async function deleteProfile(req, res) {
             return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
         }
         const deletedProfile = await profileService.deleteProfileById(req.user.id);
-        if (!deletedProfile) {
-            return res.status(404).json({ error: "Profile tidak ditemukan" });
-        }
         res.status(200).json({ message: "Profile deleted successfully" });
     } catch (error) {
-        console.error("Error deleting profile:", error);
-        res.status(500).json({ error: "Internal server error" });
+        next(error);
     }
 }
 

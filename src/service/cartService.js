@@ -1,19 +1,26 @@
 const prisma = require("../config/prisma");
-
+const { NotFound, BadRequest, Forbidden } = require("../error/errorFactory");
 
 async function addToCart(userId, data) {
     const product = await prisma.products.findUnique({
         where: { id: Number(data.productId) }
     });
     if (!product) {
-        throw new Error("Product tidak ditemukan");
+        throw NotFound("Produk tidak ditemukan");
     }
     if (product.isDeleted) {
-        throw new Error("Product tidak tersedia");
+        throw NotFound("Produk tidak ditemukan");
     }
 const buyer = await prisma.buyers.findUnique({
   where: { userId: userId }});  
     
+    if (!buyer) {
+        throw NotFound("Pembeli tidak ditemukan");
+    }
+    if (buyer.userId !== userId) {
+        throw Forbidden("Forbidden");
+    }
+
     const existingCartItem = await prisma.cart.findFirst({
         where: {
             buyerId: buyer.id,
@@ -65,32 +72,16 @@ const buyer = await prisma.buyers.findUnique({
         });
 }
 
-// async function updatedStock(userId, data) {
-//     const buyer = await prisma.buyers.findUnique({
-//     where: { userId: userId }});
-
-//     const productStock = await prisma.products.findUnique({
-//         where: {id : Number(data.productId)}
-//     })
-
-//     const decreasedStock = prisma.products.update({
-//         where: { id: Number(data.productId) },
-//         data: { stock: productStock.stock - (data.quantity) },
-//     });
-
-//     if (decreasedStock < 0) {
-//         throw new Error("Stok produk tidak mencukupi"); 
-//     }
-//     return decreasedStock;
-    
-// }
-
 async function getCartByUserId(id) {
     const buyer = await prisma.buyers.findUnique({
     where: { userId: id }});
     if (!buyer) {
-        throw new Error("Pembeli tidak ditemukan");
+        throw NotFound("Pembeli tidak ditemukan");
     }
+    if (buyer.userId !== id) {
+        throw Forbidden("Forbidden");
+    }
+    
     return prisma.cart.findMany({
         where: { buyerId : buyer.id,
             product : {
@@ -114,37 +105,62 @@ async function getCartByUserId(id) {
     });
 }
 
-async function updateCartItem(userId, data) {
+async function showEditCart(userId, product) {
     const buyer = await prisma.buyers.findUnique({
-  where: { userId: userId }});
+    where: { userId: userId }});
+    if (!buyer) {
+        throw NotFound("Pembeli tidak ditemukan");
+    }
+    if (buyer.userId !== userId) {
+        throw Forbidden("Forbidden");
+    }
+
     const cartItem = await prisma.cart.findFirst({
         where: {
             buyerId : buyer.id,
-            productId : Number(data.productId)
+            productId : Number(productId)
          }
     });
-    if (!buyer) {
-        throw new Error("Pembeli tidak ditemukan");
-    } 
-
     if (!cartItem) {
-        throw new Error("Item keranjang tidak ditemukan");
+        throw NotFound("Item keranjang tidak ditemukan");
+    }
+    return cartItem;
+
+}
+
+async function updateCartItem(userId, productId, quantity) {
+    const buyer = await prisma.buyers.findUnique({
+  where: { userId: userId }});
+    if (!buyer) {
+        throw NotFound("Pembeli tidak ditemukan");
+    } 
+    if (buyer.userId !== userId) {
+        throw Forbidden("Forbidden");
+    }
+    const cartItem = await prisma.cart.findFirst({
+        where: {
+            buyerId : buyer.id,
+            productId : Number(productId)
+         }
+    });
+    if (!cartItem) {
+        throw NotFound("Item keranjang tidak ditemukan");
     }
 
     const stockProduct = await prisma.products.findUnique({
         where: { id: cartItem.productId }
     });
-    if (data.quantity <= 0) {
-        throw new Error("Kuantitas harus lebih besar dari 0");
+    if (quantity <= 0) {
+        throw BadRequest("Kuantitas harus lebih besar dari 0");
     }
-    if (data.quantity > stockProduct.stock) {
-        throw new Error("Stok produk tidak mencukupi");
+    if (quantity > stockProduct.stock) {
+        throw BadRequest("Stok produk tidak mencukupi");
     }
 
 
     return prisma.cart.update({
         where: { id: cartItem.id },
-        data: { quantity: Number(data.quantity) },
+        data: { quantity: Number(quantity) },
         include: { product: {
             select : {
                     id: true,
@@ -161,21 +177,24 @@ async function updateCartItem(userId, data) {
 }
 
 async function removeCartItem(userId, productId) {
-
     const buyer = await prisma.buyers.findUnique({
     where: { userId: userId }});
+    if (!buyer) {
+        throw NotFound("Pembeli tidak ditemukan");
+    }
+    if (buyer.userId !== userId) {
+        throw Forbidden("Forbidden");
+    }
+
     const cartItem = await prisma.cart.findFirst({
         where: {
             buyerId : buyer.id,
             productId : Number(productId)
          }
     });
-    if (!buyer) {
-        throw new Error("Pembeli tidak ditemukan");
-    } 
-
+    
     if (!cartItem) {
-        throw new Error("Item keranjang tidak ditemukan");
+        throw NotFound("Item keranjang tidak ditemukan");
     }
 
     return prisma.cart.delete({
@@ -187,7 +206,7 @@ async function deleteAllItem(userId) {
  const buyer = await prisma.buyers.findUnique({
     where: { userId: userId }});
     if (!buyer) {
-        throw new Error("Pembeli tidak ditemukan");
+        throw NotFound("Pembeli tidak ditemukan");
     } 
     return prisma.cart.deleteMany({
         where: { buyerId : buyer.id }
@@ -201,7 +220,10 @@ async function selectionItemCart(userId, cartId, isSelected) {
     });
     
     if (!buyer){
-        throw new Error ("Buyer tidak ditemukan");
+        throw NotFound("Buyer tidak ditemukan");
+    }
+    if (buyer.userId !== userId){
+        throw Forbidden("Forbidden");
     }
 
     const cartItem = await prisma.cart.findFirst({
@@ -210,7 +232,7 @@ async function selectionItemCart(userId, cartId, isSelected) {
             buyerId : buyer.id}
 });
     if (!cartItem){
-        throw new Error ("Item tidak ditemukan");
+        throw NotFound("Item tidak ditemukan");
     }
 
     return prisma.cart.update({

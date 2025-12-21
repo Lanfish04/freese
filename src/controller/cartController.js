@@ -1,7 +1,7 @@
 const cartService = require('../service/cartService');
 
 
-async function getCart(req, res) {
+async function getCart(req, res, next) {
     try {
         if (!req.user || !req.user.id) {
             return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
@@ -30,12 +30,11 @@ async function getCart(req, res) {
               cartTotal: cartTotal
             });
     } catch (error) {
-        console.error("Error fetching cart:", error);
-        res.status(500).json({ error: "Internal server error" });
+        next(error);
     }
 }
 
-async function addToCart(req, res) {
+async function addToCart(req, res, next) {
   try {
     const userId = req.user.id;
 
@@ -51,14 +50,36 @@ async function addToCart(req, res) {
       data: result
     });
   } catch (error) {
-    console.error("Error add to cart:", error);
-    res.status(400).json({ error: error.message });
+   next(error);
   }
 }
 
-async function editCartItem(req, res) {
+async function showEditCart(req, res, next) {
+try {
+    const userId = req.user.id;
+    const productId = req.params.product;
+
+    if (!req.user || !userId) {
+        return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
+    }
+    if (req.user.role !== 'BUYER') {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const cartItem = await cartService.showEditCart(userId, productId);
+    res.status(200).json({
+      message: "Berhasil menampilkan item keranjang",
+      data: cartItem
+    });
+} catch (error) {
+  next(error);
+}
+}
+
+async function editCartItem(req, res, next) {
   try {
     const userId = req.user.id;
+    const productId = req.params.productId;
+
     if (!req.user || !userId) {
         return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
     }
@@ -66,27 +87,25 @@ async function editCartItem(req, res) {
       return res.status(403).json({ error: "Forbidden" });
     }
 
-    const result = await cartService.updateCartItem(userId, req.body);
+    const result = await cartService.updateCartItem(userId, productId, req.body.quantity);
     res.status(200).json({
       message: "Stok produk berhasil diperbarui",
       data: result
     });
   }
   catch (error) {
-    console.error("Error updating stock:", error);
-    res.status(400).json({ error: error.message });
+    next(error);
   } 
 }
 
-async function deleteCartItem(req, res) {
+async function deleteCartItem(req, res, next) {
   try {
     const userId = req.user.id;
     const productId = req.params.productId;
 
-    if (isNaN(productId)) {
-      return res.status(400).json({ error: "productId tidak valid" });
-    }
-
+    // if (isNaN(productId)) {
+    //   return res.status(400).json({ error: "productId tidak valid" });
+    // }
     if (!req.user || !userId) {
         return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
     }
@@ -99,12 +118,11 @@ async function deleteCartItem(req, res) {
       data: result
     });
   } catch (error) {
-    console.error("Error deleting cart item:", error);
-    res.status(400).json({ error: error.message });
+    next(error);
   } 
 }
 
-async function clearCart(req, res) {
+async function clearCart(req, res, next) {
   try {
     const userId = req.user.id;
     if (!req.user || !userId) {
@@ -119,13 +137,13 @@ async function clearCart(req, res) {
       data: result
     });
   } catch (error) {
-    console.error("Error clearing cart:", error);
-    res.status(400).json({ error: error.message });
+    next(error);
+
   }
   
 }
 
-async function itemSelected(req, res) {
+async function itemSelected(req, res, next) {
  try{
   const userId = req.user.id;
   const {isSelected} = req.body;
@@ -145,15 +163,15 @@ async function itemSelected(req, res) {
       data: updatedCart
     });
 }catch (error) {
-    console.error("Error updating cart item:", error);
-    res.status(400).json({ error: error.message });
-  }
+next(error);
+}
 
 }
 
 module.exports = {
     getCart,
     addToCart,
+    showEditCart,
     editCartItem,
     deleteCartItem,
     clearCart,

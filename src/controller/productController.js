@@ -4,20 +4,19 @@ const bucket = require('../config/storage');
 const product = require('../service/productService')
 const path = require('path');
 
-async function getProducts(req, res) {
-    try {
-        const products = await product.getProducts();
-        res.status(200).json({
-          message: "Berhasil menampilkan produk", 
-          data : products});
-    }catch{
-        console.error("Error fetching products:", error);
-        res.status(500).json({ error: "Internal server error" });
-    }
+// async function getProducts(req, res, next) {
+//     try {
+//         const products = await product.getProducts();
+//         res.status(200).json({
+//           message: "Berhasil menampilkan produk", 
+//           data : products});
+//     }catch (error){
+//         next(error)
+//     }
   
-}
+// }
 
-async function getProductsWithFilter(req, res) {
+async function getProductsWithFilter(req, res, next) {
 try{
 const searchProduct = await product.getProductsWithFilter(req.query);
 res.status(200).json({
@@ -25,23 +24,21 @@ res.status(200).json({
     data: searchProduct
 });
 }catch (error) {
-    console.error("Error fetching products with filter:", error);
-    res.status(500).json({ error: "Internal server error" });
+    next(error);
 }
 }
 
-async function detailProduct(req, res) {
+async function detailProduct(req, res, next) {
     try {
       const {id} = req.params;
         const productById = await product.getProductById(id);
         res.status(200).json(productById);
     } catch (error) {
-        console.error("Error fetching product by ID:", error);
-        res.status(400).json({ error: error.message });
+        next(error);
     }
 }
 
-async function getMyProducts(req, res) {
+async function getMyProducts(req, res, next) {
     try {
         if (!req.user || !req.user.id) {
             return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
@@ -50,25 +47,16 @@ async function getMyProducts(req, res) {
         if (req.user.role !== 'FARMER') {
           return res.status(403).json({ error: "Hanya petani yang dapat mengakses produk mereka" });
         }
-        const farmer = await prisma.farmers.findFirst({
-            where: { userId: req.user.id },
-        });
-
-        if (!farmer) {
-            return res.status(404).json({ error: "Petani tidak ditemukan, pastikan akun anda terdaftar sebagai petani" });
-        }
-
-        const products = await product.getProductsByFarmerId(farmer.id);
+        const products = await product.getProductsByFarmerId(req.user.id);
         res.status(200).json({
           message: "Berhasil menampilkan produk",
           products});
     } catch (error) {
-        console.error("Error fetching products for farmer:", error);
-        res.status(500).json({ error: "Internal server error" });
+        next(error);
     }
 }
 
-async function createProduct(req, res) {
+async function createProduct(req, res, next) {
   try {
     if (!req.user || !req.user.id) {
       return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
@@ -104,11 +92,11 @@ async function createProduct(req, res) {
       newProduct });
   }catch (error) {
     console.error("Error creating product:", error);
-    res.status(400).json({ error: error.message });
+    next(error);
   }
 }
 
-async function showEditProduct(req, res ) {
+async function showEditProduct(req, res, next) {
     try{
     const { id } = req.params;
       if (!req.user || !req.user.id) {
@@ -123,12 +111,11 @@ async function showEditProduct(req, res ) {
       productById});
     return productById;
     }catch (error) {
-    console.error("Error fetching product:", error);
-    res.status(400).json({ error: error.message });
+    next(error);
   }
 }
 
-async function updateProduct(req, res) {
+async function updateProduct(req, res, next) {
     try {
     const { id } = req.params;
 
@@ -187,12 +174,11 @@ async function updateProduct(req, res) {
     });
 
     }catch (error) {
-        console.error("Error updating product:", error);
-        res.status(500).json({ error: "Internal server error" });
+        next(error);
 }
 
 }
-async function deleteProduct(req, res) {
+async function deleteProduct(req, res, next) {
     try {
     const { id } = req.params;
       if (!req.user || !req.user.id) {
@@ -205,8 +191,7 @@ async function deleteProduct(req, res) {
     await product.deleteProduct(req.user.id, id);
     res.status(200).json({ message: "Produk berhasil dihapus" });
     }catch (error) {
-        console.error("Error deleting product:", error);
-        res.status(400).json({ error: error.message });
+        next(error);
     }
   
 }
@@ -220,14 +205,13 @@ async function searchProduct(req, res) {
           message: "Hasil pencarian produk",
           products});
     } catch (error) {
-        console.error("Error searching products:", error);
-        res.status(500).json({ error: "Internal server error" });
+        next(error);
     } 
 }
 
 
 module.exports = { 
-    getProducts,
+    // getProducts,
     getProductsWithFilter,
     getMyProducts,
     detailProduct,

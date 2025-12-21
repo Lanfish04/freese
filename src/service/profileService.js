@@ -1,14 +1,14 @@
 const prisma = require("../config/prisma");
 const bcrypt = require("bcrypt");
+const { NotFound, BadRequest } = require("../error/errorFactory");
 
 async function getProfileById(id) {
     const Finduser = await prisma.users.findUnique({
         where: { id: Number(id) },
-        
 
     });
     if(!Finduser){
-        return null;
+        throw NotFound("Profile tidak ditemukan");
     }
     if (Finduser.role === "FARMER") {
         return prisma.users.findUnique({
@@ -47,7 +47,7 @@ async function getProfileById(id) {
         });
 
     } else {
-        return null;
+        throw NotFound("Profile tidak ditemukan");
 }
 }
 
@@ -69,7 +69,7 @@ async function updateMyDataProfile(userId, data) {
     });
 
     if (!user){
-        throw new Error("User tidak ditemukan");
+        throw NotFound("User tidak ditemukan");
     }
 
     if (user.role === "FARMER") {
@@ -130,30 +130,30 @@ async function changeMyPasswordProfile(id, data) {
     });
 
     if (!userLama) {
-        throw new Error("User tidak ditemukan");
+        throw NotFound("User tidak ditemukan");
     }
 
     const oldPassword = data.oldPassword;
     const newPassword  = data.newPassword
 
     if (!oldPassword || !newPassword) {
-        throw new Error("Password lama dan password baru wajib diisi");
+        throw BadRequest("Password lama dan password baru wajib diisi");
     }
 
     // cek password lama
     const isMatch = await bcrypt.compare(oldPassword, userLama.password);
     if (!isMatch) {
-        throw new Error("Password lama salah");
+        throw BadRequest("Password lama salah");
     }
 
     // cegah password lama dipakai ulang
     const isSamePassword = await bcrypt.compare(newPassword, userLama.password);
     if (isSamePassword) {
-        throw new Error("Password baru tidak boleh sama dengan password lama");
+        throw BadRequest("Password baru tidak boleh sama dengan password lama");
     }
 
     if (newPassword.length < 8) {
-        throw new Error("Password baru minimal 8 karakter");
+        throw BadRequest("Password baru minimal 8 karakter");
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);

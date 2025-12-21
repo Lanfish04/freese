@@ -1,24 +1,24 @@
 const prisma = require('../config/prisma');
+const { NotFound, Forbidden, BadRequest } = require("../error/errorFactory");
 
-
-async function getProducts() {
-    return prisma.products.findMany({
-      where: { isDeleted: false },  
-      include :{ 
-        farmer:{
-            select:{
-                farmName: true,
-                address: true,
-                productsType: true
-                   }        
-               }
-        }
-    });
-}
+// async function getProducts() {
+//     return prisma.products.findMany({
+//       where: { isDeleted: false },  
+//       include :{ 
+//         farmer:{
+//             select:{
+//                 farmName: true,
+//                 address: true,
+//                 productsType: true
+//                    }        
+//                }
+//         }
+//     });
+// }
 
 
 async function getProductsByFarmerId(farmerId) {
-    return prisma.products.findMany({
+    const products = await prisma.products.findMany({
         where: { farmerId: Number(farmerId), isDeleted : false },
         include :{
         farmer:{
@@ -30,6 +30,17 @@ async function getProductsByFarmerId(farmerId) {
             }
         }
     });
+    if (!products) {
+        throw NotFound("Produk tidak ditemukan");
+    }
+    if (products.length === 0) {
+        throw NotFound("Produk tidak ditemukan untuk petani ini");
+    }
+    if (products.farmerId !== Number(farmerId)) {
+        throw Forbidden("Produk bukan milik petani ini");
+    }
+
+return products;
 }
 
 async function getProductById(id) {
@@ -46,7 +57,7 @@ async function getProductById(id) {
         }
     });
     if (!product) {
-        throw new Error("Produk tidak ditemukan");
+        throw NotFound("Produk tidak ditemukan");
     }
 return product;
 }
@@ -57,12 +68,13 @@ async function createProduct(userId, data) {
     });
 
     if (!farmer) {
-        throw new Error("Farmer tidak ditemukan");
+        throw NotFound("Farmer tidak ditemukan");
     }
 
    if (!data.name || !data.price || !data.stock) {
-        throw new Error("Tidak Boleh Kosong ");
+        throw BadRequest("Tidak Boleh Kosong");
     }
+
 
     return prisma.products.create({
       data: {
@@ -83,18 +95,20 @@ async function editProduct(userId, id) {
         where: { userId: userId }
     });
     if (!farmer) {
-        throw new Error("Farmer tidak ditemukan");
+        throw NotFound("Farmer tidak ditemukan");
     }
     const product = await prisma.products.findUnique({
-      where: { id: Number(id) },
+      where: { id: Number(id),
+        isDeleted : false
+       },
     });
 
     if (!product) {
-        throw new Error("Produk tidak ditemukan");
+        throw NotFound("Produk tidak ditemukan");
     }
 
     if (product.farmerId !== farmer.id) {
-        throw new Error("Forbidden");
+        throw Forbidden("Produk bukan milik Anda");
     }
 
     return product;
@@ -107,11 +121,11 @@ async function updateProduct(userId, id, data) {
   });
 
   if (!farmer) {
-    throw new Error("Farmer tidak ditemukan");
+    throw NotFound("Farmer tidak ditemukan");
   }
 
   if (!id || isNaN(Number(id))) {
-    throw new Error("ID produk tidak valid");
+    throw new BadRequest("ID produk tidak valid");
   }
 
   const product = await prisma.products.findUnique({
@@ -119,11 +133,11 @@ async function updateProduct(userId, id, data) {
   });
 
   if (!product) {
-    throw new Error("Produk tidak ditemukan");
+    throw NotFound("Produk tidak ditemukan");
   }
 
   if (product.farmerId !== farmer.id) {
-    throw new Error("Forbidden");
+    throw Forbidden("Produk bukan milik Anda");
   }
 
   const updatedProduct = await prisma.products.update({
@@ -147,18 +161,18 @@ async function deleteProduct(userId, id) {
         where: { userId: userId }
     });
     if (!farmer) {
-        throw new Error("Farmer tidak ditemukan");
+        throw NotFound("Farmer tidak ditemukan");
     }
     const product = await prisma.products.findUnique({
       where: { id: Number(id) },
     });
 
     if (!product) {
-        throw new Error("Produk tidak ditemukan");
+        throw NotFound("Produk tidak ditemukan");
     }
 
     if (product.farmerId !== farmer.id) {
-        throw new Error("Forbidden : Produk bukan milik Anda");
+        throw Forbidden("Produk bukan milik Anda");
     }
 
     return prisma.products.update({
@@ -226,7 +240,6 @@ async function getProductsWithFilter(query) {
 }
 
 module.exports = { 
-    getProducts,
     getProductById,
     getProductsByFarmerId,
     createProduct,

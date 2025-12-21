@@ -105,7 +105,7 @@ async function getCartByUserId(id) {
     });
 }
 
-async function showEditCart(userId, product) {
+async function showEditCart(userId, cartId) {
     const buyer = await prisma.buyers.findUnique({
     where: { userId: userId }});
     if (!buyer) {
@@ -115,11 +115,24 @@ async function showEditCart(userId, product) {
         throw Forbidden("Forbidden");
     }
 
-    const cartItem = await prisma.cart.findFirst({
+    const cartItem = await prisma.cart.findUnique({
         where: {
+            id : Number(cartId),
             buyerId : buyer.id,
-            productId : Number(productId)
-         }
+            
+         },
+        include: {
+            product: {
+                select : {
+                    id: true,
+                    name: true,
+                    price: true,
+                    image: true,
+                    unit: true,
+                    category: true,
+                }
+            }
+        }
     });
     if (!cartItem) {
         throw NotFound("Item keranjang tidak ditemukan");
@@ -128,7 +141,7 @@ async function showEditCart(userId, product) {
 
 }
 
-async function updateCartItem(userId, productId, quantity) {
+async function updateCartItem(userId, cartId, quantity) {
     const buyer = await prisma.buyers.findUnique({
   where: { userId: userId }});
     if (!buyer) {
@@ -139,8 +152,8 @@ async function updateCartItem(userId, productId, quantity) {
     }
     const cartItem = await prisma.cart.findFirst({
         where: {
+            id : Number(cartId),
             buyerId : buyer.id,
-            productId : Number(productId)
          }
     });
     if (!cartItem) {
@@ -176,7 +189,7 @@ async function updateCartItem(userId, productId, quantity) {
     });
 }
 
-async function removeCartItem(userId, productId) {
+async function removeCartItem(userId, cartId) {
     const buyer = await prisma.buyers.findUnique({
     where: { userId: userId }});
     if (!buyer) {
@@ -188,8 +201,8 @@ async function removeCartItem(userId, productId) {
 
     const cartItem = await prisma.cart.findFirst({
         where: {
-            buyerId : buyer.id,
-            productId : Number(productId)
+            id : Number(cartId),
+            buyerId : buyer.id
          }
     });
     
@@ -255,6 +268,7 @@ async function selectionItemCart(userId, cartId, isSelected) {
 
 module.exports = {
     addToCart,
+    showEditCart,
     getCartByUserId,
     updateCartItem,
     removeCartItem,

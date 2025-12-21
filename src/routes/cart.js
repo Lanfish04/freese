@@ -8,12 +8,12 @@ router.route('/')
     .get(middleware.accessValidate, cartCon.getCart)
     .post(middleware.accessValidate, cartCon.addToCart);
 
-router.route('/edit/:productId')
+router.route('/edit/:cartId')
 .get(middleware.accessValidate, cartCon.showEditCart)  
 .put(middleware.accessValidate, cartCon.editCartItem)
 
-router.route('/:productId').delete(middleware.accessValidate, cartCon.deleteCartItem)
+router.route('/delete/:cartId').delete(middleware.accessValidate, cartCon.deleteCartItem)
 router.route('/clear').delete(middleware.accessValidate, cartCon.clearCart)
-router.route('/:id/select').patch(middleware.accessValidate,cartCon.itemSelected)
+router.route('/:cartId/select').patch(middleware.accessValidate,cartCon.itemSelected)
 
 module.exports=router;

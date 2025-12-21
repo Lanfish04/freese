@@ -57,7 +57,7 @@ async function addToCart(req, res, next) {
 async function showEditCart(req, res, next) {
 try {
     const userId = req.user.id;
-    const productId = req.params.product;
+    const cartId = req.params.cartId;
 
     if (!req.user || !userId) {
         return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
@@ -65,7 +65,7 @@ try {
     if (req.user.role !== 'BUYER') {
       return res.status(403).json({ error: "Forbidden" });
     }
-    const cartItem = await cartService.showEditCart(userId, productId);
+    const cartItem = await cartService.showEditCart(userId, cartId);
     res.status(200).json({
       message: "Berhasil menampilkan item keranjang",
       data: cartItem
@@ -78,7 +78,7 @@ try {
 async function editCartItem(req, res, next) {
   try {
     const userId = req.user.id;
-    const productId = req.params.productId;
+    const cartId = req.params.cartId;
 
     if (!req.user || !userId) {
         return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
@@ -87,7 +87,7 @@ async function editCartItem(req, res, next) {
       return res.status(403).json({ error: "Forbidden" });
     }
 
-    const result = await cartService.updateCartItem(userId, productId, req.body.quantity);
+    const result = await cartService.updateCartItem(userId, cartId, req.body.quantity);
     res.status(200).json({
       message: "Stok produk berhasil diperbarui",
       data: result
@@ -101,7 +101,7 @@ async function editCartItem(req, res, next) {
 async function deleteCartItem(req, res, next) {
   try {
     const userId = req.user.id;
-    const productId = req.params.productId;
+    const cartId = req.params.cartId;
 
     // if (isNaN(productId)) {
     //   return res.status(400).json({ error: "productId tidak valid" });
@@ -112,7 +112,7 @@ async function deleteCartItem(req, res, next) {
     if (req.user.role !== 'BUYER') {
       return res.status(403).json({ error: "Forbidden" });
     }
-    const result = await cartService.removeCartItem(userId, productId);
+    const result = await cartService.removeCartItem(userId, cartId);
     res.status(200).json({
       message: "Item keranjang berhasil dihapus",
       data: result

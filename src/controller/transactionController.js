@@ -2,7 +2,7 @@ const transactionsService = require("../service/transactionsService");
 const bucket = require('../config/storage');
 
 //Function untuk get history
-async function historyTransaction(req, res) {
+async function historyTransaction(req, res, next) {
     try {
       const status = req.query.status;  
       
@@ -26,13 +26,12 @@ async function historyTransaction(req, res) {
       return res.status(403).json({ error: "Forbidden" });
   
     } catch (error) {
-        console.error("Error fetching transaction history:", error);
-        res.status(500).json({ error: "Internal server error" });
+        next(error);
     }
 }   
 
 //Function untuk get history by id
-async function getHistoryById(req, res){
+async function getHistoryById(req, res, next) {
  try{
   const id = req.params;
   if (!req.user || !req.user.id) {
@@ -55,13 +54,12 @@ async function getHistoryById(req, res){
       return  res.status(403).json({ error: "Forbidden" });
   
     } catch (error) {
-        console.error("Error fetching transaction history:", error);
-        res.status(500).json({ error: "Internal server error" });
+        next(error);
     } 
 }
 
 //Function untuk membuat 1 transaksi
-async function createOneTransaction(req, res) {
+async function createOneTransaction(req, res, next) {
   try {
     if (!req.user || req.user.role !== "BUYER") {
       return res.status(403).json({ error: "Hanya buyer yang bisa membuat transaksi" });
@@ -74,13 +72,12 @@ async function createOneTransaction(req, res) {
       transaction
     });
   } catch (error) {
-    console.error("Error create transaction:", error);
-    res.status(400).json({ error: error.message });
+    next(error);
   }
 }
 
 //Function untuk membuat banyak transaksi dari keranjang
-async function createSelectedTransactions(req, res) {
+async function createSelectedTransactions(req, res, next) {
   try {
     if (!req.user || req.user.role !== "BUYER") {
       return res.status(403).json({ error: "Hanya buyer yang bisa membuat transaksi" });
@@ -92,28 +89,25 @@ async function createSelectedTransactions(req, res) {
       transactions
     });
   } catch (error) {
-    console.error("Error create transactions:", error);
-    res.status(400).json({ error: error.message });
+    next(error);
   }
 }
 
 //Function untuk update status transaksi dari midtrans
-async function updateStatusPembayaran(req, res) {
+async function updateStatusPembayaran(req, res, next) {
   try {
     const { order_id, status_code, transaction_status } = req.query
 
     await transactionsService.getRefreshTransaction(order_id, status_code, transaction_status);
-
     res.json({ message: "Status pembayaran diperbarui" });
   
 }catch (error) {
-    console.error("Error uploading payment proof:", error);
-    res.status(400).json({ error: error.message });
+    next(error);
   }
 }
 
 //Function untuk mengubah status transaksi untuk farmer
-async function editTransactionStatus(req, res) {
+async function editTransactionStatus(req, res, next) {
   try {
     const { transactionId } =req.body;
     const invoice = req.file;
@@ -142,12 +136,12 @@ async function editTransactionStatus(req, res) {
       transaction
     });
   } catch (error) {
-    console.error("Error updating payment status:", error);
-    res.status(400).json({ error: error.message });
+    next(error);
   }
 }
 
-async function updateStatusComplete(req, res){
+//Function untuk mengubah status transaksi untuk buyer
+async function updateStatusComplete(req, res, next) {
   try{
     const {transactionId, status} = req.body;
     const userId = req.user.id;
@@ -160,14 +154,13 @@ async function updateStatusComplete(req, res){
       transaction
     });
   }catch(error){
-    console.error("Error updating transaction status:", error);
-    res.status(400).json({ error: error.message });
+    next(error);
 
   }
 }
 
-
-async function payClick(req, res) {
+//Function untuk melakukan pembayaran
+async function payClick(req, res, next) {
   try {
     const transactionsId = req.params.transactionsId;
     if (!req.user || req.user.role !== "BUYER") {
@@ -179,8 +172,7 @@ async function payClick(req, res) {
       paymentUrl
     });
   } catch (error) {
-    console.error("Error processing payment:", error);
-    res.status(400).json({ error: error.message });
+    next(error);
   } 
 }
 

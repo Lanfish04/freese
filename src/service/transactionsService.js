@@ -1,6 +1,7 @@
 const prisma = require("../config/prisma");
 const axios = require("axios");
 const dotenv = require('dotenv');
+const { NotFound, BadRequest, Forbidden } = require("../error/errorFactory");
 
 //Function untuk get data history buyer
 async function getHistoryBuyerTransaction(userId, status) {
@@ -8,7 +9,7 @@ async function getHistoryBuyerTransaction(userId, status) {
         where: { userId: userId }
     });
     if (!buyer) {
-        throw new Error("Buyer tidak ditemukan");
+        throw NotFound("Buyer tidak ditemukan");
     }
     return prisma.transactions.findMany({
         where: { buyerId: buyer.id, 
@@ -33,7 +34,7 @@ const buyer = await prisma.buyers.findUnique({
         where: { userId: userId }
     });
     if (!buyer) {
-        throw new Error("Buyer tidak ditemukan");
+        throw NotFound("Buyer tidak ditemukan");
     }
     const transaction = await prisma.transactions.findUnique({
       where: { id: Number(id),
@@ -51,7 +52,7 @@ const buyer = await prisma.buyers.findUnique({
      }
     });
     if (!transaction) {
-      throw new Error("Transaksi tidak ditemukan");
+      throw NotFound("Transaksi tidak ditemukan");
     }
     return transaction;
 }
@@ -64,7 +65,7 @@ async function getHistoryFarmerTransaction(userId, status){
     where : {userId: userId}
   });
   if (!farmer){
-    throw new Error("Farmer tidak ditemukan");
+    throw NotFound("Farmer tidak ditemukan");
   }
   return prisma.transactions.findMany({
     where: { product: { 
@@ -100,7 +101,7 @@ async function getHistoryFarmerById(userId, id){
     where : {userId: userId}
   });
   if (!farmer){
-    throw new Error("Farmer tidak ditemukan");
+    throw NotFound("Farmer tidak ditemukan");
   }
   const transaction = await prisma.transactions.findUnique({
     where: { product: { 
@@ -142,7 +143,7 @@ async function createOneTransaction(userId, data) {
   where: { userId: userId }});
   
   if (!buyer) {
-    throw new Error("Buyer tidak ditemukan");
+    throw NotFound("Buyer tidak ditemukan");
   }
   //Check apakah produk tersedia
   const products = await prisma.products.findFirst({
@@ -151,10 +152,10 @@ async function createOneTransaction(userId, data) {
     }
   })
   if (!products) {
-    throw new Error("Produk tidak ditemukan");
+    throw NotFound("Produk tidak ditemukan");
   }
   if (products.stock < data.quantity) {
-    throw new Error("Stok produk tidak mencukupi");
+    throw BadRequest("Stok produk tidak mencukupi");
   }
 
   const totalPrice = products.price * data.quantity;
@@ -189,7 +190,7 @@ async function createManyTransactions(userId, data) {
     where: { userId: userId }
   });
   if (!buyer) {
-    throw new Error("Buyer tidak ditemukan");
+    throw NotFound("Buyer tidak ditemukan");
   }
 await prisma.cart.updateMany({
   where: {
@@ -217,10 +218,10 @@ await prisma.cart.updateMany({
     }
   });
   if (selectedItems.some(item => item.product.isDeleted)) {
-    throw new Error("Salah satu produk dalam keranjang tidak tersedia");
+    throw BadRequest("Salah satu produk dalam keranjang tidak tersedia");
   }
 if (selectedItems.length === 0) {
-    throw new Error("Tidak ada item yang dipilih");
+    throw BadRequest("Tidak ada item yang dipilih");
   }
   const transactionsData = [];
 
@@ -228,11 +229,11 @@ if (selectedItems.length === 0) {
     const product = item.product;
 
     if (!product) {
-      throw new Error(`Produk tidak ditemukan atau tidak tersedia untuk produk ${item.name}`);
+      throw NotFound(`Produk tidak ditemukan atau tidak tersedia untuk produk ${item.name}`);
     }
 
     if (product.stock < item.quantity) {
-      throw new Error(`Stok produk ${product.name} tidak mencukupi`);
+      throw BadRequest(`Stok produk ${product.name} tidak mencukupi`);
     }
 
     const totalPrice = product.price * item.quantity;
@@ -267,7 +268,7 @@ const order = await prisma.transactions.findUnique({
   where: { id: Number(order_id) }
 });
 if (!order) {
-  throw new Error("Transaksi tidak ditemukan");
+  throw NotFound("Transaksi tidak ditemukan");
 }
 const status = transaction_status === "capture" ? "PAID" : "FAILED";
 
@@ -303,7 +304,7 @@ async function editStatusTransactionFarmer(userId, transactionId, imageUrl) {
     });
 
     if (!farmer){
-      throw new Error("Farmer tidak ditemukan");
+      throw NotFound("Farmer tidak ditemukan");
     }
     const transaction = await prisma.transactions.findUnique({
       where: { id: Number(transactionId)},
@@ -312,19 +313,19 @@ async function editStatusTransactionFarmer(userId, transactionId, imageUrl) {
     }
   });
   if (!transaction) {
-    throw new Error("Transaksi tidak ditemukan");
+    throw NotFound("Transaksi tidak ditemukan");
   }
   if(transaction.product.farmerId !== farmer.id) {
-  throw new Error("Anda tidak berhak mengubah status transaksi ini");
+  throw new Forbidden("Anda tidak berhak mengubah status transaksi ini");
   }
   if (transaction.paymentStatus !== "PAID") {
-  throw new Error("Pembayaran belum selesai");
+  throw new Forbidden("Pembayaran belum selesai");
 }
 if (transaction.status !== "PENDING") {
-  throw new Error("Status transaksi tidak valid untuk diproses");
+  throw new BadRequest("Status transaksi tidak valid untuk diproses");
 }
 if(!imageUrl){
-  throw new Error("Bukti resi tidak boleh kosong")
+  throw new BadRequest("Bukti resi tidak boleh kosong")
 }
 
   const updateTransaction = await prisma.transactions.update({
@@ -345,19 +346,19 @@ async function editStatusTransactionBuyer(userId, transactionId, status) {
       where: { userId: userId }
     });
     if (!buyer){
-      throw new Error("Buyer tidak ditemukan");
+      throw NotFound("Buyer tidak ditemukan");
     }
     const transaction = await prisma.transactions.findUnique({
       where: { id: Number(transactionId)},
   });
   if (!transaction) {
-    throw new Error("Transaksi tidak ditemukan");
+    throw NotFound("Transaksi tidak ditemukan");
   }
   if(transaction.buyerId !== buyer.id) {
-  throw new Error("Anda tidak berhak mengubah status transaksi ini");
+  throw Forbidden("Anda tidak berhak mengubah status transaksi ini");
   }
   if (transaction.status !== "PROCESSING") {
-  throw new Error("Status transaksi tidak valid untuk diproses");
+  throw BadRequest("Status transaksi tidak valid untuk diproses");
   }
   const updateTransaction = await prisma.transactions.update({
     where: { id: Number(transactionId) },
@@ -407,7 +408,7 @@ async function payClick(transactionsId) {
   });
 
   if (!transaction) {
-    throw new Error("Tidak ada transaksi yang dapat diproses untuk pembayaran");
+    throw NotFound("Tidak ada transaksi yang dapat diproses untuk pembayaran");
   }
 
   const body = {

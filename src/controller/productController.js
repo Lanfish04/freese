@@ -4,18 +4,6 @@ const bucket = require('../config/storage');
 const product = require('../service/productService')
 const path = require('path');
 
-// async function getProducts(req, res, next) {
-//     try {
-//         const products = await product.getProducts();
-//         res.status(200).json({
-//           message: "Berhasil menampilkan produk", 
-//           data : products});
-//     }catch (error){
-//         next(error)
-//     }
-  
-// }
-
 async function getProductsWithFilter(req, res, next) {
 try{
 const searchProduct = await product.getProductsWithFilter(req.query);
@@ -91,7 +79,6 @@ async function createProduct(req, res, next) {
       message: "Produk berhasil dibuat",
       newProduct });
   }catch (error) {
-    console.error("Error creating product:", error);
     next(error);
   }
 }
@@ -118,7 +105,6 @@ async function showEditProduct(req, res, next) {
 async function updateProduct(req, res, next) {
     try {
     const { id } = req.params;
-
     const file = req.file;
     
      if (!req.user || !req.user.id) {
@@ -196,22 +182,7 @@ async function deleteProduct(req, res, next) {
   
 }
 
-async function searchProduct(req, res) {
-    try {
-        const  keyword  = req.query.keyword || '';
-        // const  category  = req.query.category || '';
-        const products = await product.searchProduct(keyword);
-        res.status(200).json({
-          message: "Hasil pencarian produk",
-          products});
-    } catch (error) {
-        next(error);
-    } 
-}
-
-
 module.exports = { 
-    // getProducts,
     getProductsWithFilter,
     getMyProducts,
     detailProduct,
@@ -219,5 +190,4 @@ module.exports = {
     showEditProduct,
     updateProduct,
     deleteProduct,
-    searchProduct
 };

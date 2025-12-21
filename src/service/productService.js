@@ -19,7 +19,8 @@ const { NotFound, Forbidden, BadRequest } = require("../error/errorFactory");
 
 async function getProductsByFarmerId(farmerId) {
     const products = await prisma.products.findMany({
-        where: { farmerId: Number(farmerId), isDeleted : false },
+        where: { farmerId: Number(farmerId), 
+        isDeleted : false },
         include :{
         farmer:{
             select:{
@@ -70,6 +71,9 @@ async function createProduct(userId, data) {
     if (!farmer) {
         throw NotFound("Farmer tidak ditemukan");
     }
+    if (farmer.userId !== userId) {
+        throw Forbidden("Anda bukan petani");
+    }
 
    if (!data.name || !data.price || !data.stock) {
         throw BadRequest("Tidak Boleh Kosong");
@@ -97,6 +101,13 @@ async function editProduct(userId, id) {
     if (!farmer) {
         throw NotFound("Farmer tidak ditemukan");
     }
+    if (farmer.userId !== userId) {
+        throw Forbidden("Anda bukan petani");
+    }
+    if (!id || isNaN(Number(id))) {
+        throw new BadRequest("ID produk tidak valid");
+    }
+
     const product = await prisma.products.findUnique({
       where: { id: Number(id),
         isDeleted : false
@@ -163,6 +174,13 @@ async function deleteProduct(userId, id) {
     if (!farmer) {
         throw NotFound("Farmer tidak ditemukan");
     }
+    if (farmer.userId !== userId) {
+        throw Forbidden("Anda bukan petani");
+    }
+    if (!id || isNaN(Number(id))) {
+        throw new BadRequest("ID produk tidak valid");
+    }
+    
     const product = await prisma.products.findUnique({
       where: { id: Number(id) },
     });

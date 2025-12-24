@@ -157,6 +157,11 @@ async function createOneTransaction(userId, data) {
   if (products.stock < data.quantity) {
     throw BadRequest("Stok produk tidak mencukupi");
   }
+  if (!buyer.shipAddress && data.shipAddress){
+    throw BadRequest("Alamat pengiriman masih kosong")
+
+
+  }
 
   const totalPrice = products.price * data.quantity;
   const transaction = await prisma.transactions.create({

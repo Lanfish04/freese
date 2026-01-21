@@ -33,7 +33,7 @@ async function historyTransaction(req, res, next) {
 //Function untuk get history by id
 async function getHistoryById(req, res, next) {
  try{
-  const id = req.params;
+  const id = Number(req.params.id);
   if (!req.user || !req.user.id) {
             return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
         }
@@ -79,10 +79,11 @@ async function createOneTransaction(req, res, next) {
 //Function untuk membuat banyak transaksi dari keranjang
 async function createSelectedTransactions(req, res, next) {
   try {
-    if (!req.user || req.user.role !== "BUYER") {
+  const {shipAddress} = req.body; 
+ if (!req.user || req.user.role !== "BUYER") {
       return res.status(403).json({ error: "Hanya buyer yang bisa membuat transaksi" });
     }
-    const transactions = await transactionsService.createManyTransactions(req.user.id, req.body);
+    const transactions = await transactionsService.createManyTransactions(req.user.id, shipAddress);
 
     res.status(201).json({  
       message: "Transaksi berhasil dibuat",

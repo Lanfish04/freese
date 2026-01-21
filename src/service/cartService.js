@@ -41,8 +41,7 @@ const buyer = await prisma.buyers.findUnique({
                     unit: true,
                     category: true,
                     description: true,
-                    isDeleted : false
-                }
+                  }
             } }
         });
     }
@@ -64,8 +63,7 @@ const buyer = await prisma.buyers.findUnique({
                     image: true,
                     unit: true,
                     category: true,
-                    description: true,
-                    isDeleted : false
+                    description: true
                 }
          }
         }

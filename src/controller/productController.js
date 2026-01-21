@@ -28,14 +28,15 @@ async function detailProduct(req, res, next) {
 
 async function getMyProducts(req, res, next) {
     try {
-        if (!req.user || !req.user.id) {
+	const userId = req.user.id;
+        if (!req.user || !userId) {
             return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
         }
         
         if (req.user.role !== 'FARMER') {
           return res.status(403).json({ error: "Hanya petani yang dapat mengakses produk mereka" });
         }
-        const products = await product.getProductsByFarmerId(req.user.id);
+        const products = await product.getProductsByFarmerId(userId);
         res.status(200).json({
           message: "Berhasil menampilkan produk",
           products});

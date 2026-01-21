@@ -254,7 +254,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "E:\\Project\\express js\\freese-backend\\prisma\\generated",
+      "value": "/home/fadlan837/freese/prisma/generated",
       "fromEnvVar": null
     },
     "config": {
@@ -263,19 +263,18 @@ const config = {
     "binaryTargets": [
       {
         "fromEnvVar": null,
-        "value": "windows",
+        "value": "debian-openssl-3.0.x",
         "native": true
       }
     ],
     "previewFeatures": [
       "fullTextSearchPostgres"
     ],
-    "sourceFilePath": "E:\\Project\\express js\\freese-backend\\prisma\\schema.prisma",
+    "sourceFilePath": "/home/fadlan837/freese/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
-    "rootEnvPath": "../../.env",
-    "schemaEnvPath": "../../.env"
+    "rootEnvPath": null
   },
   "relativePath": "..",
   "clientVersion": "6.18.0",

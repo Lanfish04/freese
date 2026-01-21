@@ -36,7 +36,7 @@ const buyer = await prisma.buyers.findUnique({
     if (!buyer) {
         throw NotFound("Buyer tidak ditemukan");
     }
-    const transaction = await prisma.transactions.findUnique({
+    const transaction = await prisma.transactions.findFirst({
       where: { id: Number(id),
       buyerId: buyer.id },
       include: {  
@@ -47,9 +47,9 @@ const buyer = await prisma.buyers.findUnique({
                 price: true,
                 image: true,
                 unit: true,
-       }
-      },
-     }
+	    	   }
+     		 }
+    		 }
     });
     if (!transaction) {
       throw NotFound("Transaksi tidak ditemukan");
@@ -80,18 +80,10 @@ async function getHistoryFarmerTransaction(userId, status){
                 price: true,
                 image: true,
                 unit: true,
-       }
+      		 }
       },
-      buyer: {
-        select: {
-          id: true,
-          full_name: true,
-          email: true,
-          phone: true,
-          address: true
-       } 
-      }
-     }
+      buyer: true
+   }
   });
 } 
 
@@ -157,10 +149,8 @@ async function createOneTransaction(userId, data) {
   if (products.stock < data.quantity) {
     throw BadRequest("Stok produk tidak mencukupi");
   }
-  if (!buyer.shipAddress && data.shipAddress){
+  if (buyer.shipAddress === null){
     throw BadRequest("Alamat pengiriman masih kosong")
-
-
   }
 
   const totalPrice = products.price * data.quantity;
@@ -321,16 +311,25 @@ async function editStatusTransactionFarmer(userId, transactionId, imageUrl) {
     throw NotFound("Transaksi tidak ditemukan");
   }
   if(transaction.product.farmerId !== farmer.id) {
-  throw new Forbidden("Anda tidak berhak mengubah status transaksi ini");
+  throw Forbidden("Anda tidak berhak mengubah status transaksi ini");
   }
   if (transaction.paymentStatus !== "PAID") {
-  throw new Forbidden("Pembayaran belum selesai");
+  throw Forbidden("Pembayaran belum selesai");
 }
+
+if (transaction.status === "PROCESSING") {
+  throw BadRequest("Transaksi sudah diproses");
+}
+
+if (transaction.status === "COMPLETED") {
+  throw BadRequest("Transaksi sudah selesai");
+}
+
 if (transaction.status !== "PENDING") {
-  throw new BadRequest("Status transaksi tidak valid untuk diproses");
+  throw BadRequest("Status transaksi tidak valid");
 }
 if(!imageUrl){
-  throw new BadRequest("Bukti resi tidak boleh kosong")
+  throw BadRequest("Bukti resi tidak boleh kosong")
 }
 
   const updateTransaction = await prisma.transactions.update({
@@ -418,8 +417,8 @@ async function payClick(transactionsId) {
 
   const body = {
     transaction_details: {
-      order_id: transaction.id,
-      gross_amount: transaction.totalPrice,
+      order_id: `TRX-${transaction.id}-${Date.now}`,
+      gross_amount: Number(transaction.totalPrice),
     },
   };
 
@@ -436,7 +435,7 @@ async function payClick(transactionsId) {
   );
 
   const result = response.data;
-
+	console.log(body);
   console.log("Midtrans response:", result);
   return result.redirect_url;
 }

@@ -16,32 +16,37 @@ const { NotFound, Forbidden, BadRequest } = require("../error/errorFactory");
 //     });
 // }
 
+async function getProductsByFarmerId(userId) {
+  const farmer = await prisma.farmers.findUnique({
+    where: { userId: Number(userId) }
+  });
 
-async function getProductsByFarmerId(farmerId) {
-    const products = await prisma.products.findMany({
-        where: { farmerId: Number(farmerId), 
-        isDeleted : false },
-        include :{
-        farmer:{
-            select:{
-                farmName: true,
-                address: true,
-                productsType: true
-                }        
-            }
+  if (!farmer) {
+    throw NotFound("Farmer tidak ditemukan");
+  }
+
+
+  const products = await prisma.products.findMany({
+    where: {
+      farmerId: farmer.id,
+      isDeleted: false
+    },
+    include: {
+      farmer: {
+        select: {
+          farmName: true,
+          address: true,
+          productsType: true
         }
-    });
-    if (!products) {
-        throw NotFound("Produk tidak ditemukan");
+      }
     }
-    if (products.length === 0) {
-        throw NotFound("Produk tidak ditemukan untuk petani ini");
-    }
-    if (products.farmerId !== Number(farmerId)) {
-        throw Forbidden("Produk bukan milik petani ini");
-    }
+  });
 
-return products;
+  if (products.length === 0) {
+    throw NotFound("Belum ada produk");
+  }
+
+  return products;
 }
 
 async function getProductById(id) {

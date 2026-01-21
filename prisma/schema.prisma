@@ -7,12 +7,11 @@
 generator client {
   provider = "prisma-client-js"
   previewFeatures = ["fullTextSearchPostgres"]
-  output          = "./generated"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL_GCP")
 }
 
 model Users{
@@ -45,7 +44,7 @@ model Buyers {
   location String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+    
   user      Users     @relation(fields: [userId], references: [id])
   transactions Transactions[]
   cart Cart[]

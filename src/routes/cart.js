@@ -14,6 +14,6 @@ router.route('/edit/:cartId')
 
 router.route('/delete/:cartId').delete(middleware.accessValidate, cartCon.deleteCartItem)
 router.route('/clear').delete(middleware.accessValidate, cartCon.clearCart)
-router.route('/:cartId/select').patch(middleware.accessValidate,cartCon.itemSelected)
+router.route('/:id/select').patch(middleware.accessValidate,cartCon.itemSelected)
 
 module.exports=router;

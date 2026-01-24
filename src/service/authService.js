@@ -22,16 +22,13 @@ async function validateUser(data) {
 }
 
 async function addUser(data) {
-    const password = data.password;
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const photoUrl = `https://storage.googleapis.com/user-photos/profileDefault.png`;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const existingUser = await validateUser(data.email);
-
     if (!data.email || !data.password || !data.full_name || !data.phone || !data.role) {
     throw BadRequest("Semua field wajib diisi");
     }
-    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const existingUser = await prisma.users.findUnique({
+    where: { email: data.email }
+    });    
     if (data.email === existingUser) {
         throw BadRequest("Email sudah terdaftar");
     }
@@ -40,18 +37,19 @@ async function addUser(data) {
     throw BadRequest("Email tidak valid");
     }
 
-    if (data.password.lengsth < 8) {
+    if (data.password.length < 8) {
     throw BadRequest("Password minimal 8 karakter");
-    }
-
-    if (!data.photo) {
-        data.photo = photoUrl;
-    }  
+   }
 
     if (data.role !== "BUYER" && data.role !== "FARMER") {
     throw BadRequest("Role tidak valid");
     }     
 
+    const photoUrl = `https://storage.googleapis.com/user-photos/profileDefault.png`; 
+    if (!data.photo) {
+        data.photo = photoUrl;
+    }  
+    const hashedPassword = await bcrypt.hash(data.password, 10);
     const newUser = await prisma.users.create({
         data: {
             email: data.email,

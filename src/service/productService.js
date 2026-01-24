@@ -81,7 +81,7 @@ async function createProduct(userId, data) {
     }
 
    if (!data.name || !data.price || !data.stock) {
-        throw BadRequest("Tidak Boleh Kosong");
+        throw BadRequest("Data Tidak Boleh Kosong");
     }
 
 

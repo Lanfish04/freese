@@ -37,7 +37,7 @@ async function login(req, res) {
 }
 
 
-async function register(req, res) { 
+async function register(req, res, next) { 
     try {
         const { email, password, full_name, phone, role, photo } = req.body;
         const existingUser = await authService.validateUser(email);
@@ -59,7 +59,7 @@ async function register(req, res) {
                 role: newUser.role,
             },
         });
-    } catch (error) {
+    } catch () {
         console.error("Error during registration:", error);
         res.status(500).json({ error: "Internal server error" });
     }

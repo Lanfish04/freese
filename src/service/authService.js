@@ -1,5 +1,6 @@
 const prisma = require("../config/prisma");
 const bcrypt = require("bcrypt");
+const { NotFound, Forbidden, BadRequest } = require("../error/errorFactory");
 
 async function validateUser(email) {
     const user = prisma.users.findUnique({
@@ -12,9 +13,26 @@ async function addUser(data) {
     const password = data.password;
     const hashedPassword = await bcrypt.hash(password, 10);
     const photoUrl = `https://storage.googleapis.com/user-photos/profileDefault.png`;
+    const allowedRoles = ['BUYER', 'FARMER'];
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const existingUser = await validateUser(email);
+
+
+    if (data.email === existingUser) {
+           throw BadRequest ("Email sudah terdaftar");
+        }
+   
+ if (!emailRegex.test(data.email)) {
+    throw BadRequest("Email tidak valid");
+    }
+
     if (!data.photo) {
         data.photo = photoUrl;
-    }
+    }  
+
+    if (data.role !== "BUYER" && data.role !== "FARMER") {
+    throw BadRequest("Role tidak valid");
+    }     
 
     const newUser = await prisma.users.create({
         data: {

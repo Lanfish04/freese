@@ -1,5 +1,7 @@
 const transactionsService = require("../service/transactionsService");
 const bucket = require('../config/storage');
+const fs = require("fs");
+const path = require("path");
 
 //Function untuk get history
 async function historyTransaction(req, res, next) {
@@ -130,7 +132,32 @@ async function editTransactionStatus(req, res, next) {
   });
     imageUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
     }
+  //  if (invoice) {
 
+  //     // Folder tujuan
+  //     const uploadDir = path.join(
+  //       __dirname,
+  //       "../../storage/invoices",
+  //       String(userId)
+  //     );
+
+  //     // Buat folder jika belum ada
+  //     fs.mkdirSync(uploadDir, { recursive: true });
+
+  //     // Nama file
+  //     const fileName = `${Date.now()}_${invoice.originalname}`;
+
+  //     // Lokasi file
+  //     const filePath = path.join(uploadDir, fileName);
+
+  //     // Simpan buffer ke storage lokal
+  //     fs.writeFileSync(filePath, invoice.buffer);
+
+  //     // URL yang disimpan ke database
+  //     // imageUrl = `${req.protocol}://${req.get("host")}/storage/invoices/${userId}/${fileName}`;
+  //     imageUrl = `https://storage.googleapis.com/fresee-backend/${userId}/invoices/${fileName}`;
+  //   }
+    
     const transaction = await transactionsService.editStatusTransactionFarmer(userId, transactionId, imageUrl);
     res.status(200).json({
       message: "Status transaksi berhasil diperbarui",
@@ -178,6 +205,34 @@ async function payClick(req, res, next) {
 }
 
 
+// Function untuk membatalkan transaksi oleh buyer
+async function canceledTransaction(req, res, next) {
+  try {
+    const { transactionId } = req.body;
+    const userId = req.user.id;
+
+    // Hanya buyer yang dapat membatalkan transaksi
+    if (!req.user || req.user.role !== "BUYER") {
+      return res.status(403).json({
+        error: "Hanya buyer yang dapat membatalkan transaksi"
+      });
+    }
+
+    const transaction = await transactionsService.cancelTransaction(
+      userId,
+      transactionId
+    );
+
+    res.status(200).json({
+      message: "Transaksi berhasil dibatalkan",
+      transaction
+    });
+
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
     getHistoryById,
     createOneTransaction,
@@ -186,5 +241,6 @@ module.exports = {
     editTransactionStatus,
     updateStatusPembayaran,
     updateStatusComplete,
-    payClick
+    payClick,
+    canceledTransaction
 };

@@ -28,4 +28,7 @@ router.route("/history/:id")
 router.route("/product/pay/:transactionsId")    
     .post(middleware.accessValidate, transactionCon.payClick);
 
+router.route("/product/cancel")
+    .post(middleware.accessValidate, transactionCon.canceledTransaction);
+
 module.exports = router;

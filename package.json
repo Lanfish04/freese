@@ -4,7 +4,9 @@
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "build" : "prisma generate"
+
   },
   "keywords": [],
   "author": "",
@@ -13,6 +15,7 @@
   "dependencies": {
     "@google-cloud/storage": "^7.17.3",
     "@prisma/client": "^6.18.0",
+    "@supabase/supabase-js": "^2.112.0",
     "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",

@@ -1,7 +1,7 @@
 const profileService = require("../service/profileService");
 const prisma = require("../config/prisma");
 const bucket = require('../config/storage');
-
+const path = require("path");
 
 
 async function getOtherProfile(req, res, next) {
@@ -20,7 +20,7 @@ async function getOtherProfile(req, res, next) {
     }   
 }
 
-async  function getMyProfile(req, res, next) {
+async function getMyProfile(req, res, next) {
     try {
         if (!req.user || !req.user.id) {
             return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
@@ -49,32 +49,50 @@ async function updateDataProfile(req, res, next) {
     let imageUrl = existingProfile.photo; // default: pakai yang lama
     // Jika ada upload file baru
     if (req.file) {
-      const newFileName = `${req.user.id}/user-photos/${Date.now()}-${req.file.originalname}`;
-      const blob = bucket.file(newFileName);
-      const blobStream = blob.createWriteStream({
-        resumable: false,
-        contentType: req.file.mimetype,
-      });
 
-      await new Promise((resolve, reject) => {
-    blobStream.on('finish', resolve);
-    blobStream.on('error', reject);
-    blobStream.end(req.file.buffer);
-  });
+    const fileName = `${req.user.id}/user-photos/${Date.now()}-${path.basename(req.file.originalname)}`;
 
-      imageUrl = `https://storage.googleapis.com/${bucket.name}/${newFileName}`;
+    const { error } = await bucket.storage
+        .from(process.env.SUPABASE_BUCKET)
+        .upload(fileName, req.file.buffer, {
+            contentType: req.file.mimetype,
+            upsert: false,
+        });
 
-      // Hapus file lama dari bucket (jika ada)
-      if (existingProfile.photo) {
+    if (error) {
+        throw error;
+    }
+
+    const { data } = bucket.storage
+        .from(process.env.SUPABASE_BUCKET)
+        .getPublicUrl(fileName);
+
+    imageUrl = data.publicUrl;
+
+    // Hapus foto lama
+    if (existingProfile.photo) {
         try {
-          const oldFileName = existingProfile.photo.split(`${bucket.name}/`)[1];
-          await bucket.file(oldFileName).delete();
-          console.log(`File lama dihapus: ${oldFileName}`);
+
+            const oldPath = existingProfile.photo.split(
+                `/storage/v1/object/public/${process.env.SUPABASE_BUCKET}/`
+            )[1];
+
+            if (oldPath) {
+                const { error } = await bucket.storage
+                    .from(process.env.SUPABASE_BUCKET)
+                    .remove([oldPath]);
+
+                if (error) {
+                    console.warn("Gagal menghapus foto lama:", error.message);
+                }
+            }
+
         } catch (err) {
-          console.warn("Gagal hapus file lama:", err.message);
+            console.warn("Gagal menghapus foto lama:", err.message);
         }
-      }
-    }    
+    }
+
+}    
 
 
         const updatedProfile = await profileService.updateMyDataProfile(req.user.id, {
@@ -117,13 +135,47 @@ async function updatePasswordProfile(req, res, next) {
 }
 
 
-async function deleteProfile(req, res) {
+async function deleteProfile(req, res, next) {
     try {
-        if (!req.user || !req.user.id) {    
-            return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
+
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({
+                error: "User tidak ditemukan atau belum login"
+            });
         }
-        const deletedProfile = await profileService.deleteProfileById(req.user.id);
-        res.status(200).json({ message: "Profile deleted successfully" });
+
+        const existingProfile = await profileService.getProfileById(req.user.id);
+
+        if (existingProfile?.photo) {
+
+            try {
+
+                const oldPath = existingProfile.photo.split(
+                    `/storage/v1/object/public/${process.env.SUPABASE_BUCKET}/`
+                )[1];
+
+                if (oldPath) {
+                    const { error } = await bucket.storage
+                        .from(process.env.SUPABASE_BUCKET)
+                        .remove([oldPath]);
+
+                    if (error) {
+                        console.warn("Gagal menghapus foto:", error.message);
+                    }
+                }
+
+            } catch (err) {
+                console.warn("Gagal menghapus foto:", err.message);
+            }
+
+        }
+
+        await profileService.deleteProfileById(req.user.id);
+
+        res.status(200).json({
+            message: "Profile deleted successfully"
+        });
+
     } catch (error) {
         next(error);
     }

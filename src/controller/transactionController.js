@@ -118,46 +118,30 @@ async function editTransactionStatus(req, res, next) {
     if (!req.user || req.user.role !== "FARMER") {
       return res.status(403).json({ error: "Hanya farmer yang bisa mengubah status transaksi" });
     }
-    let imageUrl = null
-    if (invoice) {
-      const blob = bucket.file(`${userId}/invoices/${Date.now()}_${invoice.originalname}`);
-      const blobStream = blob.createWriteStream({
-        resumable: false,
-        contentType: invoice.mimetype,
-      });
-        await new Promise((resolve, reject) => {
-        blobStream.on('finish', resolve);
-        blobStream.on('error', reject);
-        blobStream.end(req.file.buffer);
-  });
-    imageUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
-    }
-  //  if (invoice) {
+    let imageUrl = null;
 
-  //     // Folder tujuan
-  //     const uploadDir = path.join(
-  //       __dirname,
-  //       "../../storage/invoices",
-  //       String(userId)
-  //     );
+  if (invoice) {
 
-  //     // Buat folder jika belum ada
-  //     fs.mkdirSync(uploadDir, { recursive: true });
+  const fileName = `${userId}/invoices/${Date.now()}-${path.basename(invoice.originalname)}`;
 
-  //     // Nama file
-  //     const fileName = `${Date.now()}_${invoice.originalname}`;
+  const { error } = await bucket.storage
+    .from(process.env.SUPABASE_BUCKET)
+    .upload(fileName, invoice.buffer, {
+      contentType: invoice.mimetype,
+      upsert: false,
+    });
 
-  //     // Lokasi file
-  //     const filePath = path.join(uploadDir, fileName);
+  if (error) {
+    throw error;
+  }
 
-  //     // Simpan buffer ke storage lokal
-  //     fs.writeFileSync(filePath, invoice.buffer);
+  const { data } = bucket.storage
+    .from(process.env.SUPABASE_BUCKET)
+    .getPublicUrl(fileName);
 
-  //     // URL yang disimpan ke database
-  //     // imageUrl = `${req.protocol}://${req.get("host")}/storage/invoices/${userId}/${fileName}`;
-  //     imageUrl = `https://storage.googleapis.com/fresee-backend/${userId}/invoices/${fileName}`;
-  //   }
-    
+  imageUrl = data.publicUrl;
+}
+  
     const transaction = await transactionsService.editStatusTransactionFarmer(userId, transactionId, imageUrl);
     res.status(200).json({
       message: "Status transaksi berhasil diperbarui",

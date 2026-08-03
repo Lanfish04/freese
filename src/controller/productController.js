@@ -56,21 +56,24 @@ async function createProduct(req, res, next) {
 
     let imageUrl = null;
     if (req.file) {
-      const blob = bucket.file(`${req.user.id}/products/${Date.now()}-${path.basename(req.file.originalname)}`);
-      const blobStream = blob.createWriteStream({
-        resumable: false,
+      const filename = `${req.user.id}/products/${Date.now()}-${path.basename(req.file.originalname)}`;
+      const { error } = await bucket.storage
+      .from(process.env.SUPABASE_BUCKET)
+      .upload(filename, req.file.buffer, {
         contentType: req.file.mimetype,
+        upsert: false,
       });
 
-      await new Promise((resolve, reject) => {
-        blobStream.on('error', reject);
-        blobStream.on('finish', resolve);
-        blobStream.end(req.file.buffer);
-      });
+       if (error) {
+    throw error;
+  }
 
-      
-      imageUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
-    }
+  const { data } = bucket.storage
+    .from(process.env.SUPABASE_BUCKET)
+    .getPublicUrl(filename);
+
+  imageUrl = data.publicUrl;
+}
 
     const newProduct = await product.createProduct(req.user.id, {
       ...req.body,
@@ -123,32 +126,47 @@ async function updateProduct(req, res, next) {
 
     // Jika ada upload file baru
     if (file) {
-      const newFileName = `${req.user.id}/products/${Date.now()}-${file.originalname}`;
-      const blob = bucket.file(newFileName);
-      const blobStream = blob.createWriteStream({
-        resumable: false,
-        contentType: file.mimetype,
-      });
+      const fileName = `${req.user.id}/products/${Date.now()}-${path.basename(file.originalname)}`;
 
-      await new Promise((resolve, reject) => {
-    blobStream.on('finish', resolve);
-    blobStream.on('error', reject);
-    blobStream.end(file.buffer);
-  });
+  const { error } = await supabase.storage
+    .from(process.env.SUPABASE_BUCKET)
+    .upload(fileName, file.buffer, {
+      contentType: file.mimetype,
+      upsert: false,
+    });
 
-      imageUrl = `https://storage.googleapis.com/${bucket.name}/${newFileName}`;
+  if (error) {
+    throw error;
+  }
 
-      // Hapus file lama dari bucket (jika ada)
-      if (existingProduct.image) {
-        try {
-          const oldFileName = existingProduct.image.split(`${bucket.name}/`)[1];
-          await bucket.file(oldFileName).delete();
-          console.log(`File lama dihapus: ${oldFileName}`);
-        } catch (err) {
-          console.warn("Gagal hapus file lama:", err.message);
-        }
+  const { data } = bucket.storage
+    .from(process.env.SUPABASE_BUCKET)
+    .getPublicUrl(fileName);
+
+  imageUrl = data.publicUrl;
+
+  // Hapus gambar lama
+  if (existingProduct.image) {
+
+    try {
+
+      const oldPath = existingProduct.image.split(
+        `/storage/v1/object/public/${process.env.SUPABASE_BUCKET}/`
+      )[1];
+
+      if (oldPath) {
+        await supabase.storage
+          .from(process.env.SUPABASE_BUCKET)
+          .remove([oldPath]);
       }
+
+    } catch (err) {
+      console.warn("Gagal menghapus gambar lama:", err.message);
     }
+
+  }
+
+}
 
     const updatedProduct = await product.updateProduct(req.user.id, id, {
       ...req.body,
@@ -166,21 +184,61 @@ async function updateProduct(req, res, next) {
 
 }
 async function deleteProduct(req, res, next) {
-    try {
+  try {
     const { id } = req.params;
-      if (!req.user || !req.user.id) {
-      return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
-    }
-    if (req.user.role !== 'FARMER') {
-      return res.status(403).json({ error: "Hanya petani yang dapat menghapus produk" });
+
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        error: "User tidak ditemukan atau belum login",
+      });
     }
 
-    await product.deleteProduct(req.user.id, id);
-    res.status(200).json({ message: "Produk berhasil dihapus" });
-    }catch (error) {
-        next(error);
+    if (req.user.role !== "FARMER") {
+      return res.status(403).json({
+        error: "Hanya petani yang dapat menghapus produk",
+      });
     }
-  
+
+    // Ambil data produk terlebih dahulu
+    const existingProduct = await product.getProductById(id);
+
+    if (!existingProduct) {
+      return res.status(404).json({
+        error: "Produk tidak ditemukan",
+      });
+    }
+
+    // Hapus gambar dari Supabase Storage
+    if (existingProduct.image) {
+      try {
+        const oldPath = existingProduct.image.split(
+          `/storage/v1/object/public/${process.env.SUPABASE_BUCKET}/`
+        )[1];
+
+        if (oldPath) {
+          const { error } = await bucket.storage
+            .from(process.env.SUPABASE_BUCKET)
+            .remove([oldPath]);
+
+          if (error) {
+            console.warn("Gagal menghapus gambar:", error.message);
+          }
+        }
+      } catch (err) {
+        console.warn("Gagal menghapus gambar:", err.message);
+      }
+    }
+
+    // Hapus data produk
+    await product.deleteProduct(req.user.id, id);
+
+    res.status(200).json({
+      message: "Produk berhasil dihapus",
+    });
+
+  } catch (error) {
+    next(error);
+  }
 }
 
 module.exports = { 

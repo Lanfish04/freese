@@ -1,14 +1,9 @@
-const { Storage } = require('@google-cloud/storage');
 require('dotenv').config();
+const { createClient } = require("@supabase/supabase-js");
 
-const storage = new Storage({
-  projectId: process.env.PROJECT_ID,
-  keyFilename: process.env.CREDENTIALS,
-});
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_KEY
+);
 
-const bucketName = process.env.BUCKET_NAME; // nama bucket kamu
-const bucket = storage.bucket(bucketName);
-
-console.log(`Connected to Google Cloud Storage bucket: ${bucketName}`);
-
-module.exports = bucket;
+module.exports = supabase;

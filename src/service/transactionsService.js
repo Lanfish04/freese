@@ -152,8 +152,8 @@ async function createOneTransaction(userId, data) {
   if (buyer.shipAddress === null){
     throw BadRequest("Alamat pengiriman masih kosong")
   }
-
-  const totalPrice = products.price * data.quantity;
+  const 
+  const totalPrice = products.price * data.quantity + 10000;
   const transaction = await prisma.transactions.create({
     data: {
       buyerId: buyer.id,
@@ -231,12 +231,7 @@ if (selectedItems.length === 0) {
       throw BadRequest(`Stok produk ${product.name} tidak mencukupi`);
     }
 
-    const totalPrice = product.price * item.quantity;
-
-    // await prisma.products.update({
-    //   where: { id: product.id },
-    //   data: { stock: product.stock - item.quantity },
-    // });
+    const totalPrice = product.price * item.quantity + 10000;
 
     transactionsData.push({
       buyerId: buyer.id,
@@ -252,9 +247,6 @@ if (selectedItems.length === 0) {
 
   await prisma.transactions.createMany({
     data: transactionsData,
-  });
-  await prisma.cart.deleteMany({
-    where: { buyerId: buyer.id, isSelected: true },
   });
   return transactionsData;
 }

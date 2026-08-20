@@ -99,15 +99,30 @@ async function createSelectedTransactions(req, res, next) {
 //Function untuk update status transaksi dari midtrans
 async function updateStatusPembayaran(req, res, next) {
   try {
-    const { order_id, status_code, transaction_status } = req.query
+    if (!req.user || req.user.role !== "BUYER") {
+      return res.status(403).json({
+        error: "Hanya buyer yang dapat mengecek status pembayaran"
+      });
+    }
 
-    await transactionsService.getRefreshTransaction(order_id, status_code, transaction_status);
-    res.json({ message: "Status pembayaran diperbarui" });
-  
-}catch (error) {
+    const { transactionId } = req.params;
+
+    const transaction =
+      await transactionsService.getRefreshTransaction(
+        req.user.id,
+        transactionId
+      );
+
+    res.status(200).json({
+      message: "Status pembayaran diperbarui",
+      transaction
+    });
+
+  } catch (error) {
     next(error);
   }
 }
+
 
 //Function untuk mengubah status transaksi untuk farmer
 async function editTransactionStatus(req, res, next) {
@@ -175,19 +190,27 @@ async function updateStatusComplete(req, res, next) {
 async function payClick(req, res, next) {
   try {
     const transactionsId = req.params.transactionsId;
+
     if (!req.user || req.user.role !== "BUYER") {
-      return res.status(403).json({ error: "Hanya buyer yang bisa melakukan pembayaran" });
+      return res.status(403).json({
+        error: "Hanya buyer yang bisa melakukan pembayaran"
+      });
     }
-    const paymentUrl = await transactionsService.payClick(transactionsId);
+
+    const paymentUrl = await transactionsService.payClick(
+      req.user.id,
+      transactionsId
+    );
+
     res.status(200).json({
       message: "Pembayaran berhasil diproses",
       paymentUrl
     });
+
   } catch (error) {
     next(error);
-  } 
+  }
 }
-
 
 // Function untuk membatalkan transaksi oleh buyer
 async function canceledTransaction(req, res, next) {

@@ -16,8 +16,8 @@ router.route("/product/edit/status/")
 router.route("/product/status/complete")
     .patch(middleware.accessValidate, transactionCon.updateStatusComplete);
 
-router.route("/payment")
-    .get(transactionCon.updateStatusPembayaran);
+router.route("/payment/:transactionId")
+    .get(middleware.accessValidate, transactionCon.updateStatusPembayaran);
 
 router.route("/history")    
     .get(middleware.accessValidate, transactionCon.historyTransaction);

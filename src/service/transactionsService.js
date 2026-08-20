@@ -152,7 +152,7 @@ async function createOneTransaction(userId, data) {
   if (buyer.shipAddress === null){
     throw BadRequest("Alamat pengiriman masih kosong")
   }
-  const 
+
   const totalPrice = products.price * data.quantity + 10000;
   const transaction = await prisma.transactions.create({
     data: {
@@ -252,39 +252,112 @@ if (selectedItems.length === 0) {
 }
 
 //Function mengubah status pembeli
-async function getRefreshTransaction(order_id, status_code, transaction_status) {
-const order = await prisma.transactions.findUnique({
-  where: { id: Number(order_id) }
-});
-if (!order) {
-  throw NotFound("Transaksi tidak ditemukan");
-}
-const status = transaction_status === "capture" ? "PAID" : "FAILED";
+async function getRefreshTransaction(userId, transactionId) {
 
-if (status === "FAILED") {
+  const buyer = await prisma.buyers.findUnique({
+    where: {
+      userId: userId
+    }
+  });
+
+  if (!buyer) {
+    throw NotFound("Buyer tidak ditemukan");
+  }
+
+  const order = await prisma.transactions.findFirst({
+    where: {
+      id: Number(transactionId),
+      buyerId: buyer.id
+    }
+  });
+
+  if (!order) {
+    throw NotFound("Transaksi tidak ditemukan");
+  }
+
+  // Order ID yang digunakan saat transaksi dibuat
+  const orderId = `TRX-${order.id}`;
+
+  // Backend bertanya langsung ke Midtrans
+  const response = await axios.get(
+    `${process.env.BASE_URL_MIDTRANS}/v2/${orderId}/status`,
+    {
+      headers: {
+        Accept: "application/json",
+        Authorization: process.env.MIDTRANS_SERVER_KEY
+      }
+    }
+  );
+
+  const midtransStatus = response.data.transaction_status;
+
+  console.log("Order ID:", orderId);
+  console.log("Midtrans Status:", midtransStatus);
+
+  let paymentStatus;
+
+  if (
+    midtransStatus === "settlement" ||
+    midtransStatus === "capture"
+  ) {
+    paymentStatus = "PAID";
+
+  } else if (
+    midtransStatus === "deny" ||
+    midtransStatus === "cancel" ||
+    midtransStatus === "expire" ||
+    midtransStatus === "failure"
+  ) {
+    paymentStatus = "FAILED";
+
+  } else {
+    paymentStatus = "UNPAID";
+  }
+
+  // Kalau pembayaran gagal
+  if (paymentStatus === "FAILED") {
+
+    return prisma.transactions.update({
+      where: {
+        id: order.id
+      },
+      data: {
+        paymentStatus: "FAILED",
+        status: "CANCELED",
+        updatedAt: new Date()
+      }
+    });
+
+  }
+
+  // Kalau pembayaran berhasil,
+  // stok hanya dikurangi jika sebelumnya belum PAID
+  if (
+  paymentStatus === "PAID" &&
+  order.paymentStatus !== "PAID"
+) {
+  await prisma.products.update({
+    where: {
+      id: order.productId
+    },
+    data: {
+      stock: {
+        decrement: order.quantity
+      }
+    }
+  });
+}
+
   return prisma.transactions.update({
-    where: { id: Number(order_id) },
-    data: { 
-      paymentStatus: status,
-      status : "CANCELED",
+    where: {
+      id: order.id
+    },
+    data: {
+      paymentStatus: paymentStatus,
       updatedAt: new Date()
     }
-  }); 
+  });
 }
-
-await prisma.products.update({
-  where: { id: order.productId },
-  data: { stock: { decrement: order.quantity } }
-});
-
-return prisma.transactions.update({
-  where: { id: Number(order_id) },
-  data: {
-    paymentStatus: status,
-    updatedAt: new Date()
-  }
-});
-} 
 
 //Function edit status untuk farmer
 async function editStatusTransactionFarmer(userId, transactionId, imageUrl) {
@@ -397,11 +470,23 @@ async function editStatusTransactionBuyer(userId, transactionId, status) {
 
 
 //Function generate link pembayaran
-async function payClick(transactionsId) {
+async function payClick(userId, transactionsId) {
+  const buyer = await prisma.buyers.findUnique({
+    where: {
+      userId: userId
+    }
+  });
+
+  if (!buyer) {
+    throw NotFound("Buyer tidak ditemukan");
+  }
+
   const transaction = await prisma.transactions.findFirst({
     where: {
       id: Number(transactionsId),
+      buyerId: buyer.id,
       status: "PENDING",
+      paymentStatus: "UNPAID"
     },
   });
 
@@ -409,14 +494,15 @@ async function payClick(transactionsId) {
     throw NotFound("Tidak ada transaksi yang dapat diproses untuk pembayaran");
   }
 
+  const orderId = `TRX-${transaction.id}`;
+
   const body = {
     transaction_details: {
-      order_id: `TRX-${transaction.id}-${Date.now()}`,
+      order_id: orderId,
       gross_amount: Number(transaction.totalPrice),
     },
   };
 
-  // Kirim request ke Midtrans pakai axios
   try {
     const response = await axios.post(
       process.env.BASE_URL_MIDTRANS,
@@ -436,7 +522,11 @@ async function payClick(transactionsId) {
     return response.data.redirect_url;
 
   } catch (error) {
-    console.error("Midtrans Error:", error.response?.data || error.message);
+    console.error(
+      "Midtrans Error:",
+      error.response?.data || error.message
+    );
+
     throw error;
   }
 }

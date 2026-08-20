@@ -107,7 +107,6 @@ model Transactions {
   invoice String?   @unique
   paymentStatus   PaymentStatus @default(UNPAID)
 
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

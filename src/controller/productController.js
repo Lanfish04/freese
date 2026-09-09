@@ -1,188 +1,236 @@
-const { parse } = require('dotenv');
 const prisma = require('../config/prisma');
 const bucket = require('../config/storage');
-const product = require('../service/productService')
+const product = require('../service/productService');
 const path = require('path');
 
 async function getProductsWithFilter(req, res, next) {
-try{
-const searchProduct = await product.getProductsWithFilter(req.query);
-res.status(200).json({
-    message: "Berhasil menampilkan produk dengan filter",
-    data: searchProduct
-});
-}catch (error) {
+  try {
+    const searchProduct = await product.getProductsWithFilter(req.query);
+
+    res.status(200).json({
+      message: "Berhasil menampilkan produk dengan filter",
+      data: searchProduct
+    });
+  } catch (error) {
     next(error);
-}
+  }
 }
 
 async function detailProduct(req, res, next) {
-    try {
-      const {id} = req.params;
-        const productById = await product.getProductById(id);
-        res.status(200).json(productById);
-    } catch (error) {
-        next(error);
-    }
+  try {
+    const { id } = req.params;
+
+    const productById = await product.getProductById(id);
+
+    res.status(200).json(productById);
+  } catch (error) {
+    next(error);
+  }
 }
 
 async function getMyProducts(req, res, next) {
-    try {
-	const userId = req.user.id;
-        if (!req.user || !userId) {
-            return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
-        }
-        
-        if (req.user.role !== 'FARMER') {
-          return res.status(403).json({ error: "Hanya petani yang dapat mengakses produk mereka" });
-        }
-        const products = await product.getProductsByFarmerId(userId);
-        res.status(200).json({
-          message: "Berhasil menampilkan produk",
-          products});
-    } catch (error) {
-        next(error);
+  try {
+    const userId = req.user.id;
+
+    if (!req.user || !userId) {
+      return res.status(401).json({
+        error: "User tidak ditemukan atau belum login"
+      });
     }
+
+    if (req.user.role !== 'FARMER') {
+      return res.status(403).json({
+        error: "Hanya petani yang dapat mengakses produk mereka"
+      });
+    }
+
+    const products = await product.getProductsByFarmerId(userId);
+
+    res.status(200).json({
+      message: "Berhasil menampilkan produk",
+      products
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 
 async function createProduct(req, res, next) {
   try {
     if (!req.user || !req.user.id) {
-      return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
+      return res.status(401).json({
+        error: "User tidak ditemukan atau belum login"
+      });
     }
+
     if (req.user.role !== 'FARMER') {
-      return res.status(403).json({ error: "Hanya petani yang dapat membuat produk" });
+      return res.status(403).json({
+        error: "Hanya petani yang dapat membuat produk"
+      });
     }
 
     let imageUrl = null;
+
     if (req.file) {
-      const filename = `${req.user.id}/products/${Date.now()}-${path.basename(req.file.originalname)}`;
-      const { error } = await bucket.storage
-      .from(process.env.SUPABASE_BUCKET)
-      .upload(filename, req.file.buffer, {
+      const fileName =
+        `${req.user.id}/products/${Date.now()}-${path.basename(req.file.originalname)}`;
+
+      const blob = bucket.file(fileName);
+
+      const blobStream = blob.createWriteStream({
+        resumable: false,
         contentType: req.file.mimetype,
-        upsert: false,
       });
 
-       if (error) {
-    throw error;
-  }
+      await new Promise((resolve, reject) => {
+        blobStream.on('error', reject);
+        blobStream.on('finish', resolve);
 
-  const { data } = bucket.storage
-    .from(process.env.SUPABASE_BUCKET)
-    .getPublicUrl(filename);
+        blobStream.end(req.file.buffer);
+      });
 
-  imageUrl = data.publicUrl;
-}
+      imageUrl =
+        `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+    }
 
     const newProduct = await product.createProduct(req.user.id, {
       ...req.body,
-      image: imageUrl, 
+      image: imageUrl,
     });
+
     res.status(201).json({
       message: "Produk berhasil dibuat",
-      newProduct });
-  }catch (error) {
+      newProduct
+    });
+
+  } catch (error) {
     next(error);
   }
 }
 
 async function showEditProduct(req, res, next) {
-    try{
+  try {
     const { id } = req.params;
-      if (!req.user || !req.user.id) {
-        return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
+
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        error: "User tidak ditemukan atau belum login"
+      });
     }
+
     if (req.user.role !== 'FARMER') {
-      return res.status(403).json({ error: "Hanya petani yang dapat mengedit produk" });
+      return res.status(403).json({
+        error: "Hanya petani yang dapat mengedit produk"
+      });
     }
+
     const productById = await product.editProduct(req.user.id, id);
+
     res.status(200).json({
       message: "Berhasil menampilkan produk untuk di edit",
-      productById});
-    return productById;
-    }catch (error) {
+      productById
+    });
+
+  } catch (error) {
     next(error);
   }
 }
 
 async function updateProduct(req, res, next) {
-    try {
+  try {
     const { id } = req.params;
     const file = req.file;
-    
-     if (!req.user || !req.user.id) {
-      return res.status(401).json({ error: "User tidak ditemukan atau belum login" });
+
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        error: "User tidak ditemukan atau belum login"
+      });
     }
 
     if (req.user.role !== 'FARMER') {
-      return res.status(403).json({ error: "Hanya petani yang dapat mengedit produk" });
+      return res.status(403).json({
+        error: "Hanya petani yang dapat mengedit produk"
+      });
     }
+
     const existingProduct = await product.getProductById(id);
+
     if (!existingProduct) {
-      return res.status(404).json({ error: "Produk tidak ditemukan" });
+      return res.status(404).json({
+        error: "Produk tidak ditemukan"
+      });
     }
-    let imageUrl = existingProduct.image; // default: pakai yang lama
 
-    // Jika ada upload file baru
+    // Default menggunakan gambar lama
+    let imageUrl = existingProduct.image;
+
+    // Jika ada gambar baru
     if (file) {
-      const fileName = `${req.user.id}/products/${Date.now()}-${path.basename(file.originalname)}`;
 
-  const { error } = await supabase.storage
-    .from(process.env.SUPABASE_BUCKET)
-    .upload(fileName, file.buffer, {
-      contentType: file.mimetype,
-      upsert: false,
-    });
+      const newFileName =
+        `${req.user.id}/products/${Date.now()}-${path.basename(file.originalname)}`;
 
-  if (error) {
-    throw error;
-  }
+      const blob = bucket.file(newFileName);
 
-  const { data } = bucket.storage
-    .from(process.env.SUPABASE_BUCKET)
-    .getPublicUrl(fileName);
+      const blobStream = blob.createWriteStream({
+        resumable: false,
+        contentType: file.mimetype,
+      });
 
-  imageUrl = data.publicUrl;
+      await new Promise((resolve, reject) => {
+        blobStream.on('finish', resolve);
+        blobStream.on('error', reject);
 
-  // Hapus gambar lama
-  if (existingProduct.image) {
+        blobStream.end(file.buffer);
+      });
 
-    try {
+      // URL gambar baru
+      imageUrl =
+        `https://storage.googleapis.com/${bucket.name}/${newFileName}`;
 
-      const oldPath = existingProduct.image.split(
-        `/storage/v1/object/public/${process.env.SUPABASE_BUCKET}/`
-      )[1];
+      // Hapus gambar lama dari GCP Storage
+      if (existingProduct.image) {
+        try {
 
-      if (oldPath) {
-        await supabase.storage
-          .from(process.env.SUPABASE_BUCKET)
-          .remove([oldPath]);
+          const oldFileName =
+            existingProduct.image.split(`${bucket.name}/`)[1];
+
+          if (oldFileName) {
+            await bucket.file(oldFileName).delete();
+
+            console.log(
+              `File lama berhasil dihapus: ${oldFileName}`
+            );
+          }
+
+        } catch (err) {
+          console.warn(
+            "Gagal menghapus gambar lama:",
+            err.message
+          );
+        }
       }
-
-    } catch (err) {
-      console.warn("Gagal menghapus gambar lama:", err.message);
     }
 
-  }
-
-}
-
-    const updatedProduct = await product.updateProduct(req.user.id, id, {
-      ...req.body,
-      image: imageUrl,
-    });
+    const updatedProduct = await product.updateProduct(
+      req.user.id,
+      id,
+      {
+        ...req.body,
+        image: imageUrl,
+      }
+    );
 
     res.status(200).json({
       message: "Produk berhasil diupdate",
       updatedProduct,
     });
 
-    }catch (error) {
-        next(error);
+  } catch (error) {
+    next(error);
+  }
 }
 
-}
 async function deleteProduct(req, res, next) {
   try {
     const { id } = req.params;
@@ -208,28 +256,30 @@ async function deleteProduct(req, res, next) {
       });
     }
 
-    // Hapus gambar dari Supabase Storage
+    // Hapus gambar dari GCP Storage
     if (existingProduct.image) {
       try {
-        const oldPath = existingProduct.image.split(
-          `/storage/v1/object/public/${process.env.SUPABASE_BUCKET}/`
-        )[1];
 
-        if (oldPath) {
-          const { error } = await bucket.storage
-            .from(process.env.SUPABASE_BUCKET)
-            .remove([oldPath]);
+        const oldFileName =
+          existingProduct.image.split(`${bucket.name}/`)[1];
 
-          if (error) {
-            console.warn("Gagal menghapus gambar:", error.message);
-          }
+        if (oldFileName) {
+          await bucket.file(oldFileName).delete();
+
+          console.log(
+            `Gambar berhasil dihapus: ${oldFileName}`
+          );
         }
+
       } catch (err) {
-        console.warn("Gagal menghapus gambar:", err.message);
+        console.warn(
+          "Gagal menghapus gambar:",
+          err.message
+        );
       }
     }
 
-    // Hapus data produk
+    // Hapus data produk dari database
     await product.deleteProduct(req.user.id, id);
 
     res.status(200).json({
@@ -241,12 +291,12 @@ async function deleteProduct(req, res, next) {
   }
 }
 
-module.exports = { 
-    getProductsWithFilter,
-    getMyProducts,
-    detailProduct,
-    createProduct,
-    showEditProduct,
-    updateProduct,
-    deleteProduct,
+module.exports = {
+  getProductsWithFilter,
+  getMyProducts,
+  detailProduct,
+  createProduct,
+  showEditProduct,
+  updateProduct,
+  deleteProduct,
 };

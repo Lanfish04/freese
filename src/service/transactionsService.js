@@ -280,7 +280,7 @@ async function getRefreshTransaction(userId, transactionId) {
 
   // Backend bertanya langsung ke Midtrans
   const response = await axios.get(
-    `${process.env.BASE_URL_MIDTRANS}/v2/${orderId}/status`,
+    `${process.env.MIDTRANS_STATUS_URL}/v2/${orderId}/status`,
     {
       headers: {
         Accept: "application/json",
@@ -438,36 +438,6 @@ async function editStatusTransactionBuyer(userId, transactionId, status) {
   }); 
   return updateTransaction;
 }
-
-// async function deleteTransactions(userId, transactionId) {
-//   const buyer = await prisma.buyers.findUnique({
-//     where: { userId: userId }
-//   });
-//   if (!buyer) {
-//     throw new Error("Buyer tidak ditemukan");
-//   }
-
-//   const transactions = await prisma.transactions.findUnique({
-//     where: { id: Number(transactionId),
-//       status: "COMPLETED" || "CANCELED"
-//      }
-//   });
-
-//   if (!transactions) {
-//     throw new Error("Transaksi tidak ditemukan");
-//   }
-
-
-//   return prisma.transactions.delete({
-//     where: {
-//       id: Number(transactionId),
-//       buyerId: buyer.id,
-//       status: "COMPLETED" || "CANCELED"
-//     }
-//   });
-// }
-
-
 
 //Function generate link pembayaran
 async function payClick(userId, transactionsId) {
